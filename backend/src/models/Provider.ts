@@ -1,22 +1,50 @@
-import { Schema, model } from 'mongoose';
+import mongoose, { Schema, Document } from 'mongoose';
 
-const providerSchema = new Schema({
+export interface IProvider extends Document {
+  name: string;
+  email: string;
+  password?: string;
+  companyName?: string;
+  phoneNumber?: string;
+  walletBalance: number;
+  about?: string;
+  portfolioImages?: string[];
+  serviceCategory?: string;
+  services?: string[];
+  isApproved: boolean;
+  rating?: number;
+  averageRating?: number;
+  reviewCount?: number;
+  taxCertificateUrl?: string;
+  // ✅ EKLENDİ: TrustScoreCard ve istatistik için
+  completedJobs?: number;
+  cancelRate?: number;
+  avgResponseMinutes?: number;
+  monthsOnPlatform?: number;
+  createdAt: Date;
+}
+
+const ProviderSchema: Schema = new Schema({
   name: { type: String, required: true },
   email: { type: String, required: true, unique: true },
   password: { type: String, required: true, select: false },
-  phoneNumber: { type: String, required: true, unique: true },
-  serviceCategory: { type: String, required: true },
-  taxNumber: { type: String, required: true },
+  companyName: { type: String },
+  phoneNumber: { type: String },
+  walletBalance: { type: Number, default: 0 },
+  about: { type: String, default: '' },
+  portfolioImages: [{ type: String }],
+  serviceCategory: { type: String, default: 'Genel' },
+  services: [{ type: String }],
   isApproved: { type: Boolean, default: false },
-  
-  about: { type: String, default: 'Bu profesyonel henüz bir tanıtım yazısı eklemedi.' },
+  rating: { type: Number, default: 0 },
   averageRating: { type: Number, default: 0 },
   reviewCount: { type: Number, default: 0 },
-  walletBalance: { type: Number, default: 150 },
-
-  // YENİ EKLENEN: PROFİL GÖRSELLERİ (URL listesi olarak)
-  portfolioImages: [{ type: String }]
-
+  taxCertificateUrl: { type: String },
+  // ✅ EKLENDİ
+  completedJobs: { type: Number, default: 0 },
+  cancelRate: { type: Number, default: 0 },
+  avgResponseMinutes: { type: Number, default: 60 },
+  monthsOnPlatform: { type: Number, default: 0 },
 }, { timestamps: true });
 
-export default model('Provider', providerSchema);
+export default mongoose.model<IProvider>('Provider', ProviderSchema);

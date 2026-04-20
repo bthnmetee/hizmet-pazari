@@ -1,10 +1,14 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useState, type ReactNode } from 'react';
 
-// Kullanıcı bilgilerinin yapısı
 interface User {
   id: string;
   name: string;
   role: string;
+  email?: string;
+  phoneNumber?: string;
+  companyName?: string;
+  about?: string;
+  services?: string[];
 }
 
 interface AuthContextType {
@@ -15,16 +19,13 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
-  const [user, setUser] = useState<User | null>(null);
+const getStoredUser = (): User | null => {
+  const storedUser = localStorage.getItem('user');
+  return storedUser ? JSON.parse(storedUser) : null;
+};
 
-  // Sayfa yenilendiğinde kullanıcının girişini hatırlamak için
-  useEffect(() => {
-    const storedUser = localStorage.getItem('user');
-    if (storedUser) {
-      setUser(JSON.parse(storedUser));
-    }
-  }, []);
+export const AuthProvider = ({ children }: { children: ReactNode }) => {
+  const [user, setUser] = useState<User | null>(getStoredUser);
 
   const login = (userData: User, token: string) => {
     setUser(userData);
@@ -36,7 +37,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     setUser(null);
     localStorage.removeItem('token');
     localStorage.removeItem('user');
-    window.location.href = '/login'; // Çıkış yapınca login'e at
+    window.location.href = '/login';
   };
 
   return (
@@ -46,7 +47,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   );
 };
 
-// İŞTE EKSİK OLAN KISIM BURASI (useAuth Hook'u)
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (!context) throw new Error('useAuth, AuthProvider içinde kullanılmalıdır');

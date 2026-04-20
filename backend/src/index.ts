@@ -1,56 +1,51 @@
 import express from 'express';
-import mongoose from 'mongoose';
 import cors from 'cors';
+import mongoose from 'mongoose';
 import dotenv from 'dotenv';
-import path from 'path';// Dosya yollarını ayarlamak için gerekli
-import requestRoutes from './routes/requestRoutes'; 
-import proposalRoutes from './routes/proposalRoutes'; // Yukarıya importlara ekle
-import reviewRoutes from './routes/reviewRoutes';
+import path from 'path';
 
-// ... diğer rotaların altına ekle:
-
-
-// Rotaları içeri aktarıyoruz
+// Rotaların İçe Aktarılması
 import authRoutes from './routes/authRoutes';
+import requestRoutes from './routes/requestRoutes';
+import proposalRoutes from './routes/proposalRoutes';
+import providerRoutes from './routes/providerRoutes'; 
 import adminRoutes from './routes/adminRoutes';
-import providerRoutes from './routes/providerRoutes';
+import reviewRoutes from './routes/reviewRoutes';
+import walletRoutes from './routes/walletRoutes';
+import aiRoutes from './routes/aiRoutes';
+import phoneRoutes from './routes/phoneRoutes';
 
-// .env dosyasındaki değişkenleri okumak için
 dotenv.config();
-
 const app = express();
 
-// --- MİDDLEWARE'LER ---
-app.use(cors()); // Frontend'in backend'e istek atabilmesi için
-app.use(express.json()); // Gelen JSON verilerini okuyabilmek için
-app.use(express.urlencoded({ extended: true })); // Form verilerini okuyabilmek için
+app.use(cors({ origin: 'http://localhost:5173', credentials: true }));
+app.use(express.json());
+
+// ✅ Statik dosya sunumu (uploads klasörü)
+app.use('/uploads', express.static(path.join(__dirname, '..', 'uploads')));
+
+// ✅ Tüm Rota Bağlantıları
+app.use('/api/auth', authRoutes);
+app.use('/api/requests', requestRoutes);
 app.use('/api/proposals', proposalRoutes);
+app.use('/api/providers', providerRoutes); 
+app.use('/api/admin', adminRoutes);
 app.use('/api/reviews', reviewRoutes);
+app.use('/api/wallet', walletRoutes);
+app.use('/api/ai', aiRoutes);
+app.use('/api/phone', phoneRoutes);
 
-// --- DOSYA ERİŞİM İZNİ (ÇOK ÖNEMLİ) ---
-// Admin panelinde veya sitede vergi levhalarını/fotoğrafları gösterebilmek için 'uploads' klasörünü dışa açıyoruz.
-// index.ts dosyası "src" içinde olduğu için, bir üst klasöre ('../uploads') çıkıp ana dizindeki klasörü işaret ediyoruz.
-app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
-
-// --- API ROTALARI ---
-app.use('/api/auth', authRoutes);  // Kayıt ve Giriş işlemleri
-app.use('/api/requests', requestRoutes);   
-app.use('/api/admin', adminRoutes);   // Admin onay ve kontrol işlemleri
-app.use('/api/providers', providerRoutes);
-
-// --- VERİTABANI BAĞLANTISI VE SUNUCU ---
 const PORT = process.env.PORT || 5000;
-const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/hizmet_pazari';
+const MONGO_URI = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/hizmet_pazari'; 
 
-mongoose
-  .connect(MONGO_URI)
+// MongoDB Bağlantısı ve Sunucuyu Başlatma
+mongoose.connect(MONGO_URI)
   .then(() => {
-    console.log('✅ MongoDB bağlantısı başarılı.');
+    console.log('✅ MongoDB Bağlantısı Başarılı');
     app.listen(PORT, () => {
-      console.log(`🚀 Sunucu ${PORT} portunda çalışıyor.`);
-      console.log(`📂 Dosya sunucusu aktif: http://localhost:${PORT}/uploads`);
+      console.log(`✅ Server ${PORT} portunda çalışıyor`);
     });
   })
   .catch((error) => {
-    console.error('❌ MongoDB bağlantı hatası:', error);
+    console.error('❌ MongoDB Bağlantı Hatası:', error.message);
   });

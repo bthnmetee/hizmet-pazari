@@ -1,57 +1,82 @@
 import { Request, Response } from 'express';
 import ServiceRequest from '../models/ServiceRequest';
+import Provider from '../models/Provider';
 
-// 1. YENİ HİZMET TALEBİ OLUŞTUR VE FİYAT BİÇ
+// Kategori label → slug eşleştirmesi (eski verilerle uyum için)
+const normalizeCategory = (cat: string): string => {
+  const map: Record<string, string> = {
+    'Temizlik': 'temizlik',
+    'Tadilat & Boya': 'tadilat',
+    'Tadilat': 'tadilat',
+    'Nakliyat': 'nakliyat',
+    'Evden Eve Nakliyat': 'nakliyat',
+    'Ofis Taşıma': 'nakliyat',
+    'Parsiyel Eşya Taşıma': 'nakliyat',
+    'Yazılım & Tasarım': 'yazilim',
+    'Yazılım': 'yazilim',
+    'Özel Ders': 'ozelders',
+    'Güzellik & Bakım': 'guzellik',
+    'Bahçe & Peyzaj': 'bahce',
+    'Elektrik & Tesisat': 'elektrik',
+    'Fotoğraf & Video': 'fotograf',
+    'İnşaat & Dekorasyon': 'insaat',
+    'Klima & Beyaz Eşya': 'klima',
+  };
+  return map[cat] ?? cat.toLowerCase();
+};
+
+// YENİ TALEP OLUŞTUR
 export const createRequest = async (req: Request, res: Response) => {
   try {
-    const { customer, category, title, description, location, phoneNumber, details } = req.body;
-
-    // DİNAMİK FİYATLANDIRMA ALGORİTMASI
-    let calculatedFee = 10; // Standart taban fiyat (10 Kredi)
-
-    if (category === 'nakliyat' && details?.houseSize) {
-      switch (details.houseSize) {
-        case '1+0': calculatedFee = 15; break;
-        case '1+1': calculatedFee = 25; break;
-        case '2+1': calculatedFee = 40; break;
-        case '3+1': calculatedFee = 60; break;
-        case '4+1': calculatedFee = 85; break;
-        case 'Villa / Müstakil': calculatedFee = 120; break;
-        default: calculatedFee = 20;
-      }
-    }
-
-    const newRequest = new ServiceRequest({
-      customer,
-      category,
-      title,
-      description,
-      location,
-      phoneNumber,
-      leadFee: calculatedFee, // Hesaplanan fiyatı veritabanına yazıyoruz!
-      details 
-    });
-
+    // ✅ category değerini normalize et
+    const body = { ...req.body, category: normalizeCategory(req.body.category || ''), status: 'active' };
+    const newRequest = new ServiceRequest(body);
     await newRequest.save();
-
-    res.status(201).json({ 
-      message: 'Talebiniz başarıyla oluşturuldu!', 
-      request: newRequest 
-    });
+    res.status(201).json({ message: 'Hizmet talebi başarıyla oluşturuldu.', request: newRequest });
   } catch (error: any) {
-    res.status(500).json({ message: 'Talep oluşturulurken hata meydana geldi.', error: error.message });
+    res.status(500).json({ message: error.message });
   }
 };
 
-// 2. AÇIK HİZMET TALEPLERİNİ GETİR
-export const getRequests = async (req: Request, res: Response) => {
+// AKTİF TALEPLERİ ÇEK (filtrelemeli)
+export const getActiveRequests = async (req: Request, res: Response) => {
   try {
-    const requests = await ServiceRequest.find({ status: 'open' })
-      .populate('customer', 'name')
-      .sort({ createdAt: -1 });
+    const { category, sortDate, location, providerId } = req.query;
 
+    const query: any = { status: 'active' };
+
+    // Provider'ın hizmet alanlarını normalize et
+    let allowedCategories: string[] = [];
+    if (providerId) {
+      const provider = await Provider.findById(providerId);
+      if (provider?.services && provider.services.length > 0) {
+        allowedCategories = provider.services.map(normalizeCategory);
+      }
+    }
+
+    if (category) {
+      const normalCat = normalizeCategory(category as string);
+      if (allowedCategories.length > 0) {
+        if (allowedCategories.includes(normalCat)) {
+          query.category = normalCat;
+        } else {
+          query.category = { $in: [] };
+        }
+      } else {
+        query.category = normalCat;
+      }
+    } else if (allowedCategories.length > 0) {
+      query.category = { $in: allowedCategories };
+    }
+
+    if (location) {
+      query.location = { $regex: location, $options: 'i' };
+    }
+
+    const sortCondition = sortDate === 'oldest' ? { createdAt: 1 } : { createdAt: -1 };
+    const requests = await ServiceRequest.find(query).sort(sortCondition as any);
     res.status(200).json(requests);
   } catch (error: any) {
-    res.status(500).json({ message: 'Talepler getirilirken hata oluştu.', error: error.message });
+    res.status(500).json({ message: error.message });
   }
 };

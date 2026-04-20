@@ -1,18 +1,38 @@
-import { Schema, model } from 'mongoose';
+import mongoose, { Schema, Document } from 'mongoose';
 
-const serviceRequestSchema = new Schema({
+export interface IServiceRequest extends Document {
+  customer: mongoose.Types.ObjectId;
+  category: string;
+  title: string;
+  description: string;
+  location: string;
+  phoneNumber: string;
+  details: {
+    houseSize?: string;
+    movingDate?: string;
+    elevatorFrom?: string;
+    elevatorTo?: string;
+  };
+  status: 'active' | 'completed' | 'cancelled';
+  proposalCount?: number; // ✅ EKLENDİ: frontend rekabet göstergesi için
+  createdAt: Date;
+}
+
+const ServiceRequestSchema: Schema = new Schema({
   customer: { type: Schema.Types.ObjectId, ref: 'Customer', required: true },
   category: { type: String, required: true },
   title: { type: String, required: true },
   description: { type: String, required: true },
   location: { type: String, required: true },
-  phoneNumber: { type: String, required: true }, 
-  
-  // YENİ EKLENEN: BU İLANA TEKLİF VERME BEDELİ (KREDİ)
-  leadFee: { type: Number, required: true }, 
-  
-  details: { type: Schema.Types.Mixed },
-  status: { type: String, enum: ['open', 'in-progress', 'completed', 'cancelled'], default: 'open' }
+  phoneNumber: { type: String, required: true },
+  details: {
+    houseSize: { type: String },
+    movingDate: { type: String },
+    elevatorFrom: { type: String },
+    elevatorTo: { type: String }
+  },
+  status: { type: String, enum: ['active', 'completed', 'cancelled'], default: 'active' },
+  proposalCount: { type: Number, default: 0 }, // ✅ EKLENDİ
 }, { timestamps: true });
 
-export default model('ServiceRequest', serviceRequestSchema);
+export default mongoose.model<IServiceRequest>('ServiceRequest', ServiceRequestSchema);

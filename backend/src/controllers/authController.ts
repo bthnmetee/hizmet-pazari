@@ -3,162 +3,242 @@ import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import Customer from '../models/Customer';
 import Provider from '../models/Provider';
-import { sendEmail } from '../utils/sendEmail';
 
-// 1. MÜŞTERİ KAYIT
+// 🚀 MÜŞTERİ KAYIT (Sadece Metin Verileri)
 export const registerCustomer = async (req: Request, res: Response) => {
   try {
-    const { name, email, password } = req.body;
+    const { name, email, password, phoneNumber } = req.body;
+
     const existingUser = await Customer.findOne({ email });
-    if (existingUser) return res.status(400).json({ message: 'Bu e-posta zaten kayıtlı.' });
+    if (existingUser) return res.status(400).json({ message: 'Bu e-posta zaten kullanımda.' });
 
-    const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(password, salt);
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const newCustomer = new Customer({ name, email, password: hashedPassword, phoneNumber, isPhoneVerified: !!phoneNumber });
 
-    const newCustomer = new Customer({ name, email, password: hashedPassword });
     await newCustomer.save();
-
-    res.status(201).json({ message: 'Müşteri kaydı başarılı!' });
-  } catch (error: any) {
-    res.status(500).json({ message: error.message });
+    res.status(201).json({ message: 'Müşteri kaydı başarıyla oluşturuldu.' });
+  } catch (error) {
+    res.status(500).json({ message: 'Sunucu hatası oluştu.' });
   }
 };
 
-// 2. HİZMET VEREN KAYIT
+// 🚀 HİZMET VEREN KAYIT (Cloudinary Resim Yüklemeli)
 export const registerProvider = async (req: Request, res: Response) => {
   try {
-    const { name, email, password, phoneNumber, serviceCategory, taxNumber } = req.body;
-    
-    const existingEmail = await Provider.findOne({ email });
-    const existingPhone = await Provider.findOne({ phoneNumber });
-    if (existingEmail || existingPhone) {
-      return res.status(400).json({ message: 'Bu e-posta veya telefon zaten kayıtlı.' });
+    const { name, email, password, companyName, phoneNumber, services } = req.body;
+
+    // Dosya kontrolü
+    if (!req.file) {
+      return res.status(400).json({ message: 'Vergi levhası yüklenmesi zorunludur.' });
     }
 
-    const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(password, salt);
+    const existingProvider = await Provider.findOne({ email });
+    if (existingProvider) return res.status(400).json({ message: 'Bu e-posta zaten kullanımda.' });
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    let parsedServices: string[] = [];
+    try {
+      if (services) parsedServices = JSON.parse(services);
+    } catch(e) {
+      parsedServices = [];
+    }
 
     const newProvider = new Provider({
-      name, email, password: hashedPassword, phoneNumber, serviceCategory, taxNumber
+      name,
+      email,
+      password: hashedPassword,
+      companyName,
+      phoneNumber,
+      serviceCategory: parsedServices.length > 0 ? parsedServices[0] : 'Genel',
+      services: parsedServices,
+      taxCertificateUrl: req.file.path, // ✅ DÜZELTME: Model alan adıyla eşleşiyor
+      isApproved: false
     });
-    await newProvider.save();
 
-    res.status(201).json({ message: 'Hizmet veren kaydı alındı. Onay bekleniyor.' });
+    await newProvider.save();
+    res.status(201).json({ message: 'Hizmet veren kaydı başarıyla oluşturuldu. Onay bekleniyor.' });
   } catch (error: any) {
-    res.status(500).json({ message: error.message });
+    console.error("Kayıt Hatası:", error);
+
+    if (error.code === 11000) {
+      const duplicatedField = Object.keys(error.keyValue)[0];
+      if (duplicatedField === 'email') {
+        return res.status(400).json({ message: 'Bu e-posta adresi zaten sistemde kayıtlı.' });
+      }
+      if (duplicatedField === 'phoneNumber') {
+        return res.status(400).json({ message: 'Bu telefon numarası zaten sistemde kayıtlı.' });
+      }
+    }
+
+    res.status(500).json({ message: 'Kayıt sırasında hata: ' + error.message });
   }
 };
 
-// 3. GİRİŞ YAP (LOGIN)
+// 🔑 GİRİŞ YAP (E-Posta veya Telefon ile Çift Tablo Kontrollü)
 export const login = async (req: Request, res: Response) => {
   try {
+    console.log("Giriş isteği geldi. Frontend'den gelen veri:", req.body);
+
     const { identifier, password } = req.body;
-    let user: any = null;
-    let role = '';
 
-    if (identifier.includes('@')) {
-      user = await Customer.findOne({ email: identifier }).select('+password');
-      if (user) {
-        role = 'customer';
-        // ADMIN KONTROLÜ
-        if (user.email === 'admin@gmail.com') {
-          role = 'admin'; 
-        }
-      } else {
-        user = await Provider.findOne({ email: identifier }).select('+password');
-        if (user) role = 'provider';
-      }
-    } else {
-      user = await Provider.findOne({ phoneNumber: identifier }).select('+password');
-      if (user) role = 'provider';
+    if (!identifier || !password) {
+      return res.status(400).json({ message: 'Lütfen giriş bilgilerinizi eksiksiz doldurun.' });
     }
 
-    if (!user) return res.status(401).json({ message: 'Kullanıcı bulunamadı.' });
+    const cleanIdentifier = identifier.trim();
 
-    const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) return res.status(401).json({ message: 'Şifre hatalı.' });
+    const searchCriteria = {
+      $or: [
+        { email: cleanIdentifier },
+        { phoneNumber: cleanIdentifier }
+      ]
+    };
 
-    if (role === 'provider' && user.isApproved === false) {
-      return res.status(403).json({ message: 'Hesabınız henüz onaylanmamıştır.' });
-    }
+    console.log("Veritabanında aranan kriter:", JSON.stringify(searchCriteria));
 
-    const token = jwt.sign({ userId: user._id, role }, process.env.JWT_SECRET || 'gizli_anahtar', { expiresIn: '1d' });
-
-    res.status(200).json({ 
-      message: 'Giriş başarılı',
-      token,
-      user: { id: user._id, name: user.name, role, isApproved: user.isApproved }
-    });
-  } catch (error: any) {
-    res.status(500).json({ message: error.message });
-  }
-};
-
-// 4. ŞİFREMİ UNUTTUM (MAİL GÖNDERME)
-export const forgotPassword = async (req: Request, res: Response) => {
-  try {
-    const { email } = req.body;
-    let user: any = await Customer.findOne({ email });
+    // Önce Müşteri tablosunda ara
+    let user = await Customer.findOne(searchCriteria).select('+password');
     let role = 'customer';
 
+    // Müşteri değilse, Hizmet Veren tablosunda ara
     if (!user) {
-      user = await Provider.findOne({ email });
+      user = await Provider.findOne(searchCriteria).select('+password');
       role = 'provider';
     }
 
-    if (!user) return res.status(404).json({ message: 'Bu e-posta adresine ait bir hesap bulunamadı.' });
+    // İki tabloda da yoksa
+    if (!user) {
+      console.log("❌ KULLANICI BULUNAMADI! Eşleşme yok.");
+      return res.status(404).json({ message: 'Bu bilgilerle kayıtlı bir kullanıcı bulunamadı.' });
+    }
 
-    const resetToken = jwt.sign(
-      { userId: user._id, role }, 
-      process.env.JWT_SECRET || 'gizli_anahtar', 
-      { expiresIn: '15m' }
+    // ✅ Admin kontrolü (email bazlı)
+    if (user.email === process.env.ADMIN_EMAIL) {
+      role = 'admin';
+    }
+
+    console.log(`✅ Kullanıcı bulundu! Rol: ${role}, İsim: ${user.name}`);
+
+    if (!user.password) {
+      return res.status(400).json({ message: 'Bu hesabın şifre bilgisi eksik.' });
+    }
+
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) {
+      console.log("❌ Şifre yanlış girildi.");
+      return res.status(400).json({ message: 'Hatalı şifre girdiniz.' });
+    }
+
+    // ✅ Hizmet veren onay kontrolü
+    if (role === 'provider') {
+      const provider = user as any;
+      if (!provider.isApproved) {
+        return res.status(403).json({ message: 'Hesabınız henüz onaylanmamış. Lütfen admin onayını bekleyin.' });
+      }
+    }
+
+    const token = jwt.sign(
+      { id: user._id, role: role },
+      process.env.JWT_SECRET || 'gizli_anahtar_123',
+      { expiresIn: '1d' }
     );
 
-    const resetUrl = `http://localhost:5173/sifre-sifirla/${resetToken}`;
+    res.json({
+      token,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        phoneNumber: (user as any).phoneNumber,
+        companyName: (user as any).companyName,
+        services: (user as any).services || [],
+        serviceCategory: (user as any).serviceCategory || '',
+        role: role
+      }
+    });
 
-    const message = `
-      <div style="font-family: Arial, sans-serif; padding: 20px; background-color: #f8fafc; border-radius: 10px;">
-        <h2 style="color: #1e3a8a;">Şifre Sıfırlama Talebi</h2>
-        <p>Merhaba <b>${user.name}</b>,</p>
-        <p>Hesabınızın şifresini sıfırlamak için bir talep aldık. Şifrenizi yenilemek için aşağıdaki butona tıklayın:</p>
-        <a href="${resetUrl}" style="display: inline-block; padding: 12px 24px; background-color: #2563eb; color: white; text-decoration: none; border-radius: 8px; font-weight: bold; margin-top: 10px;">Şifremi Sıfırla</a>
-      </div>
-    `;
-
-    await sendEmail({ email: user.email, subject: '🔑 Şifrenizi Sıfırlayın - Baykuş Platformu', message });
-
-    res.status(200).json({ message: 'Şifre sıfırlama bağlantısı e-posta adresinize gönderildi.' });
-  } catch (error: any) {
-    res.status(500).json({ message: 'E-posta gönderilirken bir hata oluştu.', error: error.message });
+  } catch (error) {
+    console.error("Login Hatası (Catch Bloğu):", error);
+    res.status(500).json({ message: 'Sunucu hatası oluştu.' });
   }
 };
 
-// 5. ŞİFREYİ SIFIRLA (YENİ ŞİFREYİ KAYDET)
+// 🔑 ŞİFREMİ UNUTTUM
+export const forgotPassword = async (req: Request, res: Response) => {
+  try {
+    const { email } = req.body;
+    
+    if (!email) {
+      return res.status(400).json({ message: 'E-posta adresi gereklidir.' });
+    }
+
+    // Kullanıcıyı iki tabloda da ara
+    let user: any = await Customer.findOne({ email });
+    let userType = 'customer';
+    
+    if (!user) {
+      user = await Provider.findOne({ email });
+      userType = 'provider';
+    }
+
+    if (!user) {
+      return res.status(404).json({ message: 'Bu e-posta ile kayıtlı kullanıcı bulunamadı.' });
+    }
+
+    // Reset token oluştur
+    const resetToken = jwt.sign(
+      { id: user._id, type: userType },
+      process.env.JWT_SECRET || 'gizli_anahtar_123',
+      { expiresIn: '1h' }
+    );
+
+    const resetLink = `http://localhost:5173/reset-password/${resetToken}`;
+    
+    // Geliştirici modu - terminale yaz
+    console.log("-------------------------------------------------");
+    console.log(`📩 ŞİFRE SIFIRLAMA LİNKİ`);
+    console.log(`📩 ALICI: ${email}`);
+    console.log(`🔗 LİNK: ${resetLink}`);
+    console.log("-------------------------------------------------");
+
+    res.json({ message: 'Şifre sıfırlama bağlantısı e-posta adresinize gönderildi.' });
+  } catch (error) {
+    console.error("Forgot Password Hatası:", error);
+    res.status(500).json({ message: 'Sunucu hatası oluştu.' });
+  }
+};
+
+// 🔑 ŞİFRE SIFIRLAMA
 export const resetPassword = async (req: Request, res: Response) => {
   try {
     const { token } = req.params;
     const { newPassword } = req.body;
 
-    const decoded: any = jwt.verify(token, process.env.JWT_SECRET || 'gizli_anahtar');
+    if (!newPassword || newPassword.length < 6) {
+      return res.status(400).json({ message: 'Şifre en az 6 karakter olmalıdır.' });
+    }
 
-    let user: any;
-    if (decoded.role === 'customer') {
-      user = await Customer.findById(decoded.userId);
+    // Token doğrula
+    const decoded: any = jwt.verify(token as string, process.env.JWT_SECRET || 'gizli_anahtar_123');
+    
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+    if (decoded.type === 'customer') {
+      await Customer.findByIdAndUpdate(decoded.id, { password: hashedPassword });
     } else {
-      user = await Provider.findById(decoded.userId);
+      await Provider.findByIdAndUpdate(decoded.id, { password: hashedPassword });
     }
 
-    if (!user) return res.status(404).json({ message: 'Kullanıcı bulunamadı.' });
-
-    const salt = await bcrypt.genSalt(10);
-    user.password = await bcrypt.hash(newPassword, salt);
-    await user.save();
-
-    res.status(200).json({ message: 'Şifreniz başarıyla güncellendi.' });
+    res.json({ message: 'Şifreniz başarıyla güncellendi.' });
   } catch (error: any) {
-    if (error.name === 'TokenExpiredError' || error.name === 'JsonWebTokenError') {
-      return res.status(400).json({ message: 'Şifre sıfırlama bağlantısı geçersiz veya süresi dolmuş.' });
+    if (error.name === 'TokenExpiredError') {
+      return res.status(400).json({ message: 'Şifre sıfırlama bağlantısının süresi dolmuş.' });
     }
-    res.status(500).json({ message: 'Şifre güncellenirken bir hata oluştu.', error: error.message });
+    if (error.name === 'JsonWebTokenError') {
+      return res.status(400).json({ message: 'Geçersiz şifre sıfırlama bağlantısı.' });
+    }
+    console.error("Reset Password Hatası:", error);
+    res.status(500).json({ message: 'Sunucu hatası oluştu.' });
   }
 };

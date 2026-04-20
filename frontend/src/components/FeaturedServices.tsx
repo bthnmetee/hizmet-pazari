@@ -1,4 +1,3 @@
-import React from 'react';
 
 const categories = [
   { title: 'Ev Temizliği', icon: '🧹', bg: 'bg-blue-100', border: 'hover:border-blue-200' },

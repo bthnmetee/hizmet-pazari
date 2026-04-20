@@ -1,130 +1,177 @@
 import { Request, Response } from 'express';
 import Proposal from '../models/Proposal';
-import Provider from '../models/Provider'; 
-import ServiceRequest from '../models/ServiceRequest'; 
+import ServiceRequest from '../models/ServiceRequest';
+import Provider from '../models/Provider';
+import Transaction from '../models/Transaction';
 
-// 1. YENİ TEKLİF OLUŞTUR VE ÜCRETİ TAHSİL ET
+const PROPOSAL_CREDIT_COST = 1;
+
+// TEKLİF OLUŞTURMA
 export const createProposal = async (req: Request, res: Response) => {
   try {
     const { serviceRequestId, providerId, price, message } = req.body;
 
-    const provider = await Provider.findById(providerId);
-    const serviceRequest = await ServiceRequest.findById(serviceRequestId);
-
-    if (!provider || !serviceRequest) {
-      return res.status(404).json({ message: 'Kullanıcı veya ilan bulunamadı.' });
+    const providerDoc = await Provider.findById(providerId);
+    if (!providerDoc) {
+      return res.status(404).json({ message: 'Hizmet veren hesabı bulunamadı.' });
     }
 
-    // KURTARICI KOD 1: Eğer eski hesapsa ve cüzdanı yoksa, ona 150 kredi hediye et
-    if (provider.walletBalance === undefined || provider.walletBalance === null || isNaN(provider.walletBalance)) {
-      provider.walletBalance = 150;
-    }
-
-    // KONTROL 1: Zaten teklif verilmiş mi?
-    const existingProposal = await Proposal.findOne({ serviceRequest: serviceRequestId, provider: providerId });
-    if (existingProposal) {
-      return res.status(400).json({ message: 'Bu ilana zaten bir teklif verdiniz.' });
-    }
-
-    // KONTROL 2: Cüzdanda yeterli bakiye var mı?
-    const fee = serviceRequest.leadFee || 20; 
-    if (provider.walletBalance < fee) {
-      return res.status(400).json({ 
-        message: `Yetersiz bakiye! Bu ilana teklif vermek için ${fee} Krediye ihtiyacınız var. Mevcut bakiyeniz: ${provider.walletBalance} Kredi.` 
+    if (!providerDoc.walletBalance || providerDoc.walletBalance < PROPOSAL_CREDIT_COST) {
+      return res.status(400).json({
+        message: `Yetersiz kredi! En az ${PROPOSAL_CREDIT_COST} kredi gerekli. Mevcut: ${providerDoc.walletBalance || 0}`,
+        code: 'INSUFFICIENT_CREDITS',
+        currentBalance: providerDoc.walletBalance || 0,
+        requiredCredits: PROPOSAL_CREDIT_COST
       });
     }
 
-    // TAHSİLAT: Krediyi cüzdandan düş
-    provider.walletBalance -= fee;
+    // ✅ Daha önce teklif göndermiş mi kontrol et
+    const existingProposal = await Proposal.findOne({
+      serviceRequest: serviceRequestId,
+      provider: providerId
+    });
+    if (existingProposal) {
+      return res.status(400).json({ message: 'Bu ilana zaten teklif gönderdiniz.' });
+    }
 
-    // KURTARICI KOD 2: Eski hesapların eksik zorunlu bilgilerini tamamla (Hata vermesini engeller)
-    if (!provider.taxNumber) provider.taxNumber = "11111111111"; // Rastgele bir vergi no
-    if (!provider.serviceCategory) provider.serviceCategory = "nakliyat"; // Rastgele kategori
-    if (!provider.phoneNumber) provider.phoneNumber = "05555555555"; // Rastgele telefon
+    // Kredi düş
+    providerDoc.walletBalance -= PROPOSAL_CREDIT_COST;
+    await providerDoc.save();
 
-    await provider.save();
-
-    // TEKLİFİ OLUŞTUR
     const newProposal = new Proposal({
       serviceRequest: serviceRequestId,
       provider: providerId,
       price,
-      conversation: [{ sender: 'provider', text: message }] 
+      messages: [{ sender: 'provider', text: message }]
     });
-
     await newProposal.save();
 
-    res.status(201).json({ 
-      message: 'Teklifiniz başarıyla iletildi ve ücret cüzdanınızdan düşüldü!',
-      newBalance: provider.walletBalance // Kalan bakiyeyi arayüze gönderiyoruz
+    // ✅ proposalCount arttır
+    await ServiceRequest.findByIdAndUpdate(serviceRequestId, { $inc: { proposalCount: 1 } });
+
+    // İşlem kaydı
+    const transaction = new Transaction({
+      provider: providerId,
+      type: 'proposal_fee',
+      amount: -PROPOSAL_CREDIT_COST,
+      balanceAfter: providerDoc.walletBalance,
+      description: `Teklif gönderildi (${PROPOSAL_CREDIT_COST} kredi)`,
+      relatedProposal: newProposal._id
+    });
+    await transaction.save();
+
+    res.status(201).json({
+      message: 'Teklif başarıyla iletildi',
+      proposal: newProposal,
+      remainingCredits: providerDoc.walletBalance
     });
   } catch (error: any) {
-    res.status(500).json({ message: 'Teklif gönderilirken hata oluştu.', error: error.message });
+    console.error('❌ Teklif Oluşturma Hatası:', error);
+    res.status(500).json({ message: 'Sunucu hatası: ' + error.message });
   }
 };
 
-// 2. MÜŞTERİNİN KENDİ İLANLARINA GELEN TEKLİFLERİ GETİR
+// MESAJ YANITLAMA
+export const replyToProposal = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { sender, text } = req.body;
+    const imageUrl = req.file ? (req.file as any).path : undefined;
+
+    if ((!text || text.trim() === '') && !imageUrl) {
+      return res.status(400).json({ message: 'Mesaj veya resim gönderin.' });
+    }
+
+    const proposal = await Proposal.findById(id);
+    if (!proposal) return res.status(404).json({ message: 'Teklif bulunamadı.' });
+
+    const newMessage: any = { sender, createdAt: new Date() };
+    if (text && text.trim() !== '') newMessage.text = text;
+    if (imageUrl) newMessage.imageUrl = imageUrl;
+
+    proposal.messages.push(newMessage);
+    await proposal.save();
+
+    res.status(200).json({ message: 'Mesaj gönderildi.', proposal });
+  } catch (error: any) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// MÜŞTERİYE GELEN TEKLİFLER
 export const getCustomerProposals = async (req: Request, res: Response) => {
   try {
     const { customerId } = req.params;
-    const proposals = await Proposal.find()
-      .populate({ path: 'serviceRequest', match: { customer: customerId } })
-      .populate('provider', 'name averageRating reviewCount phoneNumber');
+    const myRequests = await ServiceRequest.find({ customer: customerId });
+    const myRequestIds = myRequests.map(r => r._id);
 
-    const filteredProposals = proposals.filter(p => p.serviceRequest !== null);
-    res.status(200).json(filteredProposals);
+    const proposals = await Proposal.find({ serviceRequest: { $in: myRequestIds } })
+      .populate('provider', 'name companyName phoneNumber serviceCategory averageRating reviewCount about isApproved completedJobs cancelRate avgResponseMinutes')
+      .populate('serviceRequest', 'title location category description proposalCount')
+      .sort({ createdAt: -1 })
+      .lean();
+
+    const mappedProposals = proposals.map((p: any) => ({
+      ...p,
+      serviceRequestId: p.serviceRequest,
+      providerId: p.provider
+    }));
+
+    res.status(200).json(mappedProposals);
   } catch (error: any) {
-    res.status(500).json({ message: 'Teklifler getirilirken hata oluştu.', error: error.message });
+    res.status(500).json({ message: error.message });
   }
 };
 
-// 3. TEKLİFİ KABUL ET (ANLAŞMA SAĞLA)
-export const acceptProposal = async (req: Request, res: Response) => {
-  try {
-    const { proposalId } = req.params;
-    
-    const proposal = await Proposal.findByIdAndUpdate(proposalId, { status: 'accepted' }, { new: true });
-    if (!proposal) return res.status(404).json({ message: 'Teklif bulunamadı.' });
-
-    await Proposal.updateMany(
-      { serviceRequest: proposal.serviceRequest, _id: { $ne: proposalId } },
-      { status: 'rejected' }
-    );
-
-    await ServiceRequest.findByIdAndUpdate(proposal.serviceRequest, { status: 'in-progress' });
-
-    res.status(200).json({ message: 'Teklif kabul edildi, diğer teklifler reddedildi.', proposal });
-  } catch (error: any) {
-    res.status(500).json({ message: 'Teklif kabul edilirken hata oluştu.', error: error.message });
-  }
-};
-
-// 4. HİZMET VERENİN KENDİ VERDİĞİ TEKLİFLERİ GETİR
+// HİZMET VERENİN TEKLİFLERİ
 export const getProviderProposals = async (req: Request, res: Response) => {
   try {
     const { providerId } = req.params;
     const proposals = await Proposal.find({ provider: providerId })
-      .populate('serviceRequest'); 
-    res.status(200).json(proposals);
+      .populate('serviceRequest', 'title location category description customer phoneNumber details proposalCount')
+      .sort({ createdAt: -1 })
+      .lean();
+
+    const mappedProposals = proposals.map((p: any) => ({
+      ...p,
+      serviceRequestId: p.serviceRequest,
+      providerId: p.provider
+    }));
+
+    res.status(200).json(mappedProposals);
   } catch (error: any) {
-    res.status(500).json({ message: 'Teklifler getirilirken hata oluştu.', error: error.message });
+    res.status(500).json({ message: error.message });
   }
 };
 
-// 5. TEKLİFE MESAJ GÖNDER (KARŞILIKLI SOHBET)
-export const replyToProposal = async (req: Request, res: Response) => {
+// TEKLİF DURUMU GÜNCELLEME
+export const updateProposalStatus = async (req: Request, res: Response) => {
   try {
-    const { proposalId } = req.params;
-    const { sender, text } = req.body;
+    const { id } = req.params;
+    const { status } = req.body;
 
-    const proposal = await Proposal.findById(proposalId);
+    if (!['pending', 'accepted', 'rejected', 'completed'].includes(status)) {
+      return res.status(400).json({ message: 'Geçersiz durum.' });
+    }
+
+    const updateData: any = { status };
+
+    // ✅ acceptedAt / completedAt tarihlerini kaydet
+    if (status === 'accepted') updateData.acceptedAt = new Date();
+    if (status === 'completed') {
+      updateData.completedAt = new Date();
+      // Tamamlanan iş sayısını arttır
+      const proposal = await Proposal.findById(id);
+      if (proposal) {
+        await Provider.findByIdAndUpdate(proposal.provider, { $inc: { completedJobs: 1 } });
+      }
+    }
+
+    const proposal = await Proposal.findByIdAndUpdate(id, updateData, { new: true });
     if (!proposal) return res.status(404).json({ message: 'Teklif bulunamadı.' });
 
-    proposal.conversation.push({ sender, text, createdAt: new Date() } as any);
-    await proposal.save();
-
-    res.status(200).json({ message: 'Mesaj gönderildi.', conversation: proposal.conversation });
+    res.status(200).json({ message: 'Durum güncellendi', proposal });
   } catch (error: any) {
-    res.status(500).json({ message: 'Mesaj gönderilirken hata oluştu.', error: error.message });
+    res.status(500).json({ message: error.message });
   }
 };

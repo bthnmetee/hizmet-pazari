@@ -1,103 +1,92 @@
-import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useState, type FormEvent } from 'react';
+import type { AxiosError } from 'axios';
+import { useNavigate, Link } from 'react-router-dom';
+import axiosInstance from '../utils/axiosInstance';
 import { useAuth } from '../context/AuthContext';
 
-export default function Login() {
+const Login = () => {
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
-  
+  const [hata, setHata] = useState('');
+  const [yukleniyor, setYukleniyor] = useState(false);
   const navigate = useNavigate();
+  const { login } = useAuth();
 
-  const { login } = useAuth(); // Context'ten login fonksiyonunu çektik
-  const handleLogin = async (e: React.FormEvent) => {
+  const handleLogin = async (e: FormEvent) => {
     e.preventDefault();
-    setError('');
+    setHata('');
+    setYukleniyor(true);
 
     try {
-      const response = await fetch('http://localhost:5000/api/auth/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ identifier, password }),
+      const response = await axiosInstance.post('/auth/login', {
+        identifier,
+        password,
       });
 
-      const data = await response.json();
+      login(response.data.user, response.data.token);
 
-      if (response.ok) {
-        if (response.ok) {
-          // YENİ: Context'i kullanarak tüm sisteme haber veriyoruz
-          login(data.user, data.token);
-          
-          const userRole = data.user.role;
-          
-          if (userRole === 'admin') {
-            navigate('/admin');
-          } else if (userRole === 'provider') {
-            navigate('/hizmet-paneli');
-          } else {
-            navigate('/musteri-paneli'); 
-          }
-        }
-        
+      const role = response.data.user.role;
+
+      if (role === 'admin') {
+        navigate('/admin-dashboard');
+      } else if (role === 'customer') {
+        navigate('/musteri-paneli');
+      } else if (role === 'provider') {
+        navigate('/hizmet-paneli');
       } else {
-        setError(data.message || 'Giriş yapılamadı, bilgilerinizi kontrol edin.');
+        setHata('Geçersiz kullanıcı rolü.');
       }
-    } catch (err) {
-      setError('Sunucuya bağlanılamadı. Lütfen tekrar deneyin.');
+    } catch (error) {
+      const axiosError = error as AxiosError<{ message?: string }>;
+      if (axiosError.response) {
+        setHata(axiosError.response.data.message || 'Giriş başarısız oldu.');
+      } else {
+        setHata('Sunucuya ulaşılamıyor.');
+      }
+    } finally {
+      setYukleniyor(false);
     }
   };
 
   return (
-    <div className="flex-grow flex items-center justify-center py-20 bg-slate-50 px-6">
-      <div className="max-w-md w-full bg-white rounded-3xl shadow-xl border border-slate-100 p-10">
-        <div className="text-center mb-10">
-          <div className="w-16 h-16 bg-blue-950 rounded-full flex items-center justify-center text-white font-bold text-3xl mx-auto mb-4 shadow-lg">B</div>
-          <h2 className="text-3xl font-extrabold text-blue-950 tracking-tight">Tekrar Hoş Geldiniz</h2>
-          <p className="text-slate-500 mt-2 font-light">Hesabınıza giriş yaparak devam edin.</p>
+    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-slate-50 to-blue-50 px-4 font-sans">
+      <div className="w-full max-w-md bg-white rounded-[2rem] shadow-2xl p-10 border-t-4 border-emerald-500">
+        <div className="text-center mb-8">
+          <div className="w-14 h-14 bg-emerald-500 rounded-2xl flex items-center justify-center text-white text-2xl font-black mx-auto mb-4 shadow-lg shadow-emerald-500/30">HP</div>
+          <h2 className="text-3xl font-extrabold text-gray-900">Hizmet Pazarı</h2>
+          <p className="text-gray-400 text-sm mt-1 font-medium">Hesabınıza giriş yapın</p>
         </div>
 
-        {error && <div className="bg-red-50 text-red-600 p-3 rounded-lg text-sm mb-6 text-center">{error}</div>}
+        {hata && <div className="mb-6 p-4 bg-red-50 text-red-700 border-l-4 border-red-600 text-sm font-bold rounded-r-xl">{hata}</div>}
 
-        <form onSubmit={handleLogin} className="space-y-6">
+        <form onSubmit={handleLogin} className="space-y-5">
           <div>
-            <label className="block text-sm font-semibold text-slate-700 mb-2">E-posta Adresi veya Telefon</label>
-            <input 
-              type="text" 
-              value={identifier}
-              onChange={(e) => setIdentifier(e.target.value)}
-              required
-              placeholder="ornek@mail.com veya 0555..."
-              className="w-full px-5 py-3 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-blue-600 transition-colors"
-            />
+            <label className="block text-sm font-bold text-gray-700 mb-1">E-Posta veya Telefon</label>
+            <input type="text" placeholder="ornek@mail.com veya 05XXXXXXXXX" className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 font-medium transition-all" value={identifier} onChange={(e) => setIdentifier(e.target.value)} required />
           </div>
 
           <div>
-            <div className="flex items-center justify-between mb-2">
-              <label className="block text-sm font-semibold text-slate-700">Şifre</label>
-              <Link to="/sifremi-unuttum" className="text-sm text-blue-600 hover:text-blue-800 font-medium transition-colors">Şifremi Unuttum</Link>
-            </div>
-            <input 
-              type="password" 
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              placeholder="••••••••"
-              className="w-full px-5 py-3 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-blue-600 transition-colors"
-            />
+            <label className="block text-sm font-bold text-gray-700 mb-1">Şifre</label>
+            <input type="password" placeholder="••••••••" className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 font-medium transition-all" value={password} onChange={(e) => setPassword(e.target.value)} required />
           </div>
 
-          <button type="submit" className="w-full bg-blue-600 text-white font-bold py-3.5 rounded-xl hover:bg-blue-700 transition-all duration-300 hover:shadow-lg active:scale-95">
-            Giriş Yap
+          <div className="text-right">
+            <Link to="/forgot-password" className="text-sm text-emerald-600 font-semibold hover:underline">Şifremi Unuttum</Link>
+          </div>
+
+          <button type="submit" disabled={yukleniyor} className="w-full py-4 mt-2 bg-emerald-500 text-white font-bold rounded-xl shadow-lg shadow-emerald-500/30 hover:bg-emerald-600 transition-all active:scale-95 disabled:opacity-50">
+            {yukleniyor ? 'Giriş Yapılıyor...' : 'Giriş Yap'}
           </button>
         </form>
 
-        <p className="text-center text-slate-600 mt-8 text-sm">
-          Hesabınız yok mu?{' '}
-          <Link to="/kayit" className="text-blue-600 font-bold hover:text-blue-800 transition-colors">Hemen Üye Olun</Link>
-        </p>
+        <div className="mt-8 text-center">
+          <p className="text-gray-500 font-medium text-sm">
+            Hesabınız yok mu? <Link to="/register" className="text-emerald-600 font-bold hover:underline">Kayıt Olun</Link>
+          </p>
+        </div>
       </div>
     </div>
   );
-}
+};
+
+export default Login;

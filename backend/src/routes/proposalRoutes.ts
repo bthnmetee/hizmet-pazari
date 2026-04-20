@@ -1,32 +1,27 @@
-import express from 'express';
-import { 
-  createProposal, 
-  getCustomerProposals, 
-  acceptProposal, 
+import express, { Request, Response, NextFunction } from 'express';
+import {
+  createProposal,
+  replyToProposal,
+  getCustomerProposals,
   getProviderProposals,
-  replyToProposal // Yeni eklediğimiz mesajlaşma fonksiyonu
+  updateProposalStatus
 } from '../controllers/proposalController';
+import { uploadCloud } from '../utils/cloudinaryConfig';
 
 const router = express.Router();
 
-// 1. Yeni Teklif Oluştur ve İlk Mesajı At (Hizmet Veren)
-// POST /api/proposals/create
 router.post('/create', createProposal);
 
-// 2. Müşterinin Kendi İlanlarına Gelen Tüm Teklifleri ve Mesajları Getir
-// GET /api/proposals/customer/:customerId
+// ✅ Resim destekli mesaj
+router.post('/:id/reply', (req: Request, res: Response, next: NextFunction) => {
+  uploadCloud.single('image')(req, res, (err: any) => {
+    if (err) return res.status(500).json({ message: 'Dosya yükleme hatası: ' + err.message });
+    replyToProposal(req, res);
+  });
+});
+
 router.get('/customer/:customerId', getCustomerProposals);
-
-// 3. Teklifi Kabul Et (Müşteri Onayı)
-// PATCH /api/proposals/accept/:proposalId
-router.patch('/accept/:proposalId', acceptProposal);
-
-// 4. Hizmet Verenin Kendi Verdiği Teklifleri Getir
-// GET /api/proposals/provider/:providerId
 router.get('/provider/:providerId', getProviderProposals);
-
-// 5. Karşılıklı Mesajlaşma (Sohbete yeni mesaj ekle)
-// POST /api/proposals/:proposalId/reply
-router.post('/:proposalId/reply', replyToProposal);
+router.patch('/:id/status', updateProposalStatus);
 
 export default router;

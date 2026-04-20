@@ -1,12 +1,11 @@
 import express from 'express';
-import { updateProfile, getProfile } from '../controllers/providerController';
+import { getApprovedProviders, getProviderShowcase, updateServices, updateProfile } from '../controllers/providerController';
 
 const router = express.Router();
 
-// GET /api/providers/:id -> Profili ve Yorumları Getir
-router.get('/:id', getProfile);
-
-// PUT /api/providers/:id -> Profili Güncelle
-router.put('/:id', updateProfile);
+router.get('/approved', getApprovedProviders);
+router.get('/showcase', getProviderShowcase);
+router.put('/update-services', updateServices);
+router.put('/update-profile', updateProfile);
 
 export default router;

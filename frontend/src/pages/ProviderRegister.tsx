@@ -1,122 +1,252 @@
-import React, { useState } from 'react';
+import { Fragment, useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import axiosInstance from '../utils/axiosInstance';
+
+const SERVICES = [
+  'temizlik', 'tadilat', 'nakliyat', 'yazilim',
+  'ozelders', 'guzellik', 'bahce', 'elektrik',
+  'fotograf', 'insaat', 'klima', 'diger'
+];
+const SERVICE_LABELS: Record<string, string> = {
+  temizlik: '🧹 Temizlik', tadilat: '🔧 Tadilat & Boya', nakliyat: '🚚 Nakliyat',
+  yazilim: '💻 Yazılım & Tasarım', ozelders: '📚 Özel Ders', guzellik: '✂️ Güzellik & Bakım',
+  bahce: '🌿 Bahçe & Peyzaj', elektrik: '🔌 Elektrik & Tesisat', fotograf: '📷 Fotoğraf & Video',
+  insaat: '🏗️ İnşaat & Dekorasyon', klima: '❄️ Klima & Beyaz Eşya', diger: '⚡ Diğer'
+};
 
 export default function ProviderRegister() {
+  const [step, setStep] = useState(1); // 1: Bilgiler, 2: Hizmetler, 3: Telefon Doğrulama
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
-  const [serviceCategory, setServiceCategory] = useState('');
-  const [taxPlate, setTaxPlate] = useState<File | null>(null); // Dosya için state
-  
+  const [selectedServices, setSelectedServices] = useState<string[]>([]);
+  const [taxCertificate, setTaxCertificate] = useState<File | null>(null);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
-
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
-  const handleRegister = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
+  // Telefon doğrulama
+  const [otpSent, setOtpSent] = useState(false);
+  const [otpCode, setOtpCode] = useState('');
+  const [phoneVerified, setPhoneVerified] = useState(false);
+  const [otpLoading, setOtpLoading] = useState(false);
+  const [otpCountdown, setOtpCountdown] = useState(0);
 
-    if (!taxPlate) {
-      setError('Lütfen vergi levhanızı yükleyin.');
+  const toggleService = (srv: string) => {
+    setSelectedServices(prev =>
+      prev.includes(srv) ? prev.filter(s => s !== srv) : [...prev, srv]
+    );
+  };
+
+  const handleSendOTP = async () => {
+    if (!phoneNumber || phoneNumber.length < 10) {
+      setError('Lütfen geçerli bir telefon numarası girin.');
       return;
     }
-    
-    // Dosya göndereceğimiz için FormData oluşturuyoruz
+    setOtpLoading(true);
+    setError('');
+    try {
+      await axiosInstance.post('/phone/send-otp', { phoneNumber });
+      setOtpSent(true);
+      setOtpCountdown(120);
+      const timer = setInterval(() => {
+        setOtpCountdown(prev => {
+          if (prev <= 1) { clearInterval(timer); return 0; }
+          return prev - 1;
+        });
+      }, 1000);
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Doğrulama kodu gönderilemedi.');
+    } finally {
+      setOtpLoading(false);
+    }
+  };
+
+  const handleVerifyOTP = async () => {
+    if (!otpCode || otpCode.length !== 6) {
+      setError('Lütfen 6 haneli doğrulama kodunu girin.');
+      return;
+    }
+    setOtpLoading(true);
+    setError('');
+    try {
+      const res = await axiosInstance.post('/phone/verify-otp', { phoneNumber, code: otpCode });
+      if (res.data.verified) setPhoneVerified(true);
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Doğrulama başarısız.');
+    } finally {
+      setOtpLoading(false);
+    }
+  };
+
+  const handleRegister = async (e?: FormEvent) => {
+    if (e) e.preventDefault();
+    setError('');
+    if (!phoneVerified) { setError('Lütfen telefon numaranızı doğrulayın.'); return; }
+    if (!taxCertificate) { setError('Lütfen vergi levhanızı yükleyin.'); return; }
+    if (selectedServices.length === 0) { setError('En az bir hizmet alanı seçin.'); return; }
+
     const formData = new FormData();
     formData.append('name', name);
     formData.append('email', email);
     formData.append('phoneNumber', phoneNumber);
     formData.append('password', password);
-    formData.append('serviceCategory', serviceCategory);
-    formData.append('taxPlate', taxPlate); // Backend'deki 'upload.single("taxPlate")' adıyla eşleşmeli
+    formData.append('companyName', name);
+    formData.append('serviceCategory', selectedServices[0]);
+    formData.append('services', JSON.stringify(selectedServices));
+    formData.append('taxCertificate', taxCertificate);
 
+    setLoading(true);
     try {
-      // DİKKAT: FormData kullanırken 'Content-Type' başlığını BİZ EKLEMİYORUZ. Tarayıcı otomatik ayarlar.
-      const response = await fetch('http://localhost:5000/api/auth/register/provider', {
-        method: 'POST',
-        body: formData, 
+      await axiosInstance.post('/auth/register/provider', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
       });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        setSuccess(true);
-        setTimeout(() => navigate('/login'), 3000);
-      } else {
-        setError(data.message || 'Kayıt işlemi başarısız oldu.');
-      }
-    } catch (err) {
-      setError('Sunucuya bağlanılamadı. Lütfen backendin açık olduğundan emin olun.');
+      setSuccess(true);
+      setTimeout(() => navigate('/login'), 3000);
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Kayıt işlemi başarısız oldu.');
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <div className="flex-grow flex items-center justify-center py-20 bg-slate-50 px-6">
-      <div className="max-w-md w-full bg-white rounded-3xl shadow-xl border border-slate-100 p-10">
-        <div className="text-center mb-10">
-          <div className="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center text-white font-bold text-3xl mx-auto mb-4 shadow-lg">🚀</div>
-          <h2 className="text-3xl font-extrabold text-blue-950 tracking-tight">Hizmet Veren Ol</h2>
-          <p className="text-slate-500 mt-2 font-light">Becerilerinizi kazanca dönüştürün.</p>
+    <div className="min-h-screen flex items-center justify-center py-12 px-6" style={{ background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%)' }}>
+      <div className="fixed inset-0 pointer-events-none overflow-hidden">
+        <div className="absolute top-[-20%] right-[-10%] w-[600px] h-[600px] bg-emerald-500/10 rounded-full blur-[120px]"></div>
+        <div className="absolute bottom-[-20%] left-[-10%] w-[600px] h-[600px] bg-blue-500/10 rounded-full blur-[120px]"></div>
+      </div>
+
+      <div className="relative max-w-lg w-full">
+        <div className="text-center mb-8">
+          <div className="w-16 h-16 bg-gradient-to-br from-emerald-400 to-teal-600 rounded-2xl flex items-center justify-center text-white font-black text-2xl mx-auto mb-4 shadow-2xl shadow-emerald-500/30 rotate-3 hover:rotate-0 transition-transform">HP</div>
+          <h2 className="text-3xl font-extrabold text-white tracking-tight">Hizmet Veren Ol</h2>
+          <p className="text-slate-400 mt-2 font-medium">Becerilerinizi kazanca dönüştürün.</p>
         </div>
 
-        {error && <div className="bg-red-50 text-red-600 p-3 rounded-lg text-sm mb-6 text-center">{error}</div>}
-        {success && <div className="bg-green-50 text-green-600 p-3 rounded-lg text-sm mb-6 text-center">Tebrikler! Başvurunuz alındı. Vergi levhanız incelendikten sonra hesabınız onaylanacaktır. Girişe yönlendiriliyorsunuz...</div>}
+        {/* Step indicator */}
+        <div className="flex items-center justify-center gap-2 mb-8">
+          {[1, 2, 3].map(s => (
+            <Fragment key={s}>
+              <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold transition-all ${step === s ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/30' : step > s ? 'bg-emerald-500/20 text-emerald-400' : 'bg-white/5 text-slate-500'}`}>
+                <span className="w-4 h-4 rounded-full bg-white/20 flex items-center justify-center text-[10px]">{step > s ? '✓' : s}</span>
+                {s === 1 ? 'Bilgiler' : s === 2 ? 'Hizmetler' : 'Doğrulama'}
+              </div>
+              {s < 3 && <div className="w-6 h-0.5 bg-white/10"></div>}
+            </Fragment>
+          ))}
+        </div>
 
-        <form onSubmit={handleRegister} className="space-y-5">
-          <div>
-            <label className="block text-sm font-semibold text-slate-700 mb-1">Ad Soyad / Firma Adı</label>
-            <input type="text" required value={name} onChange={(e) => setName(e.target.value)} placeholder="Adınız Soyadınız" className="w-full px-5 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-600" />
-          </div>
+        <div className="bg-white/5 backdrop-blur-xl p-8 rounded-3xl border border-white/10 shadow-2xl">
+          {error && <div className="bg-red-500/10 border border-red-500/20 text-red-400 p-3 rounded-xl text-sm mb-6 text-center font-bold">{error}</div>}
+          {success && <div className="bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 p-3 rounded-xl text-sm mb-6 text-center font-bold">🎉 Tebrikler! Başvurunuz alındı. Onaylandıktan sonra giriş yapabilirsiniz.</div>}
 
-          <div>
-            <label className="block text-sm font-semibold text-slate-700 mb-1">E-posta Adresi</label>
-            <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} placeholder="ornek@mail.com" className="w-full px-5 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-600" />
-          </div>
+          {/* ═══ STEP 1: Kişisel Bilgiler ═══ */}
+          {step === 1 && (
+            <div className="space-y-5">
+              <div>
+                <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-2">Ad Soyad / Firma Adı</label>
+                <input type="text" required value={name} onChange={e => setName(e.target.value)} placeholder="Adınız Soyadınız" className="w-full px-4 py-3.5 bg-white/5 border border-white/10 rounded-xl focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 outline-none text-white placeholder:text-slate-500 font-medium" />
+              </div>
+              <div>
+                <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-2">E-posta</label>
+                <input type="email" required value={email} onChange={e => setEmail(e.target.value)} placeholder="ornek@mail.com" className="w-full px-4 py-3.5 bg-white/5 border border-white/10 rounded-xl focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 outline-none text-white placeholder:text-slate-500 font-medium" />
+              </div>
+              <div>
+                <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-2">Telefon</label>
+                <input type="tel" required value={phoneNumber} onChange={e => setPhoneNumber(e.target.value)} placeholder="0555 555 55 55" className="w-full px-4 py-3.5 bg-white/5 border border-white/10 rounded-xl focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 outline-none text-white placeholder:text-slate-500 font-medium" />
+              </div>
+              <div>
+                <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-2">Şifre</label>
+                <input type="password" required minLength={6} value={password} onChange={e => setPassword(e.target.value)} placeholder="En az 6 karakter" className="w-full px-4 py-3.5 bg-white/5 border border-white/10 rounded-xl focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 outline-none text-white placeholder:text-slate-500 font-medium" />
+              </div>
+              <div className="bg-emerald-500/10 p-5 rounded-2xl border border-emerald-500/20">
+                <label className="block text-xs font-black text-emerald-400 uppercase tracking-widest mb-2">Vergi Levhası (Zorunlu)</label>
+                <input type="file" required accept="image/*,.pdf" onChange={e => setTaxCertificate(e.target.files?.[0] || null)} className="w-full text-sm font-medium text-slate-300 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-black file:bg-emerald-500 file:text-white hover:file:bg-emerald-600 cursor-pointer" />
+              </div>
+              <button type="button" onClick={() => {
+                if (!name || !email || !password || !phoneNumber || !taxCertificate) { setError('Lütfen tüm alanları doldurun.'); return; }
+                setError(''); setStep(2);
+              }} className="w-full bg-gradient-to-r from-emerald-500 to-teal-500 text-white font-black py-4 rounded-xl shadow-lg shadow-emerald-500/30 hover:shadow-xl transition-all active:scale-[0.98]">
+                Devam Et →
+              </button>
+            </div>
+          )}
 
-          <div>
-            <label className="block text-sm font-semibold text-slate-700 mb-1">Telefon Numarası</label>
-            <input type="tel" required value={phoneNumber} onChange={(e) => setPhoneNumber(e.target.value)} placeholder="0555 555 55 55" className="w-full px-5 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-600" />
-          </div>
+          {/* ═══ STEP 2: Hizmet Seçimi ═══ */}
+          {step === 2 && (
+            <div className="space-y-5">
+              <button onClick={() => setStep(1)} className="text-slate-400 text-sm font-bold hover:text-white transition-colors">← Geri Dön</button>
+              <div>
+                <label className="block text-sm font-black text-white mb-4">Hizmet Alanlarınızı Seçin</label>
+                <div className="grid grid-cols-2 gap-2">
+                  {SERVICES.map(srv => (
+                    <label key={srv} className={`flex items-center gap-2 p-3.5 border rounded-xl cursor-pointer transition-all text-sm ${selectedServices.includes(srv) ? 'border-emerald-500 bg-emerald-500/10 text-emerald-400 font-bold' : 'border-white/10 text-slate-400 hover:bg-white/5 hover:border-white/20'}`}>
+                      <input type="checkbox" className="w-4 h-4 accent-emerald-500 rounded" checked={selectedServices.includes(srv)} onChange={() => toggleService(srv)} />
+                      {SERVICE_LABELS[srv]}
+                    </label>
+                  ))}
+                </div>
+              </div>
+              <button type="button" onClick={() => {
+                if (selectedServices.length === 0) { setError('En az bir hizmet alanı seçin.'); return; }
+                setError(''); setStep(3);
+              }} className="w-full bg-gradient-to-r from-emerald-500 to-teal-500 text-white font-black py-4 rounded-xl shadow-lg shadow-emerald-500/30 hover:shadow-xl transition-all active:scale-[0.98]">
+                Devam Et →
+              </button>
+            </div>
+          )}
 
-          <div>
-            <label className="block text-sm font-semibold text-slate-700 mb-1">Hizmet Kategorisi</label>
-            <select required value={serviceCategory} onChange={(e) => setServiceCategory(e.target.value)} className="w-full px-5 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-600 bg-white">
-              <option value="" disabled>Alanınızı Seçin</option>
-              <option value="temizlik">Temizlik</option>
-              <option value="tadilat">Tadilat & Boya</option>
-              <option value="nakliyat">Nakliyat</option>
-              <option value="yazilim">Yazılım & Tasarım</option>
-              <option value="ozelders">Özel Ders</option>
-            </select>
-          </div>
+          {/* ═══ STEP 3: Telefon Doğrulama ═══ */}
+          {step === 3 && (
+            <div className="space-y-6">
+              <button onClick={() => setStep(2)} className="text-slate-400 text-sm font-bold hover:text-white transition-colors">← Geri Dön</button>
+              <div className="text-center py-4">
+                <div className="w-20 h-20 bg-gradient-to-br from-emerald-500/20 to-teal-500/20 rounded-full flex items-center justify-center mx-auto mb-4 border border-emerald-500/20">
+                  <span className="text-4xl">{phoneVerified ? '✅' : '📱'}</span>
+                </div>
+                <h3 className="text-xl font-black text-white mb-1">Telefon Doğrulama</h3>
+                <p className="text-slate-400 text-sm font-medium">{phoneNumber}</p>
+              </div>
 
-          {/* DOSYA YÜKLEME ALANI */}
-          <div>
-            <label className="block text-sm font-semibold text-slate-700 mb-1">Vergi Levhası (Zorunlu)</label>
-            <input 
-              type="file" 
-              required 
-              accept="image/*,.pdf" // Sadece resim ve PDF kabul et
-              onChange={(e) => setTaxPlate(e.target.files ? e.target.files[0] : null)} 
-              className="w-full px-5 py-3 border border-slate-300 rounded-xl text-sm file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100" 
-            />
-          </div>
+              {phoneVerified ? (
+                <div className="space-y-4">
+                  <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-2xl p-6 text-center">
+                    <span className="text-3xl block mb-2">🎉</span>
+                    <p className="text-emerald-400 font-black text-lg">Doğrulandı!</p>
+                  </div>
+                  <button onClick={() => handleRegister()} disabled={success || loading} className="w-full bg-gradient-to-r from-emerald-500 to-teal-500 text-white font-black py-4 rounded-xl shadow-lg shadow-emerald-500/30 hover:shadow-xl transition-all disabled:opacity-50 active:scale-[0.98]">
+                    {loading ? 'İşleniyor...' : 'Başvuruyu Tamamla ✓'}
+                  </button>
+                </div>
+              ) : !otpSent ? (
+                <button onClick={handleSendOTP} disabled={otpLoading} className="w-full bg-gradient-to-r from-blue-500 to-indigo-500 text-white font-black py-4 rounded-xl shadow-lg shadow-blue-500/30 hover:shadow-xl transition-all disabled:opacity-50 active:scale-[0.98]">
+                  {otpLoading ? 'Gönderiliyor...' : '📩 Doğrulama Kodu Gönder'}
+                </button>
+              ) : (
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-2">6 Haneli Doğrulama Kodu</label>
+                    <input type="text" maxLength={6} placeholder="• • • • • •" value={otpCode} onChange={e => setOtpCode(e.target.value.replace(/\D/g, ''))} className="w-full p-5 bg-white/5 border border-white/10 rounded-xl outline-none focus:border-emerald-500 font-mono text-3xl text-center text-white tracking-[0.5em] placeholder:text-slate-600 transition-all" />
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-slate-500 font-bold">{otpCountdown > 0 ? `⏱ ${Math.floor(otpCountdown / 60)}:${(otpCountdown % 60).toString().padStart(2, '0')} kaldı` : ''}</span>
+                    <button onClick={handleSendOTP} disabled={otpCountdown > 0 || otpLoading} className="text-xs font-bold text-emerald-400 hover:text-emerald-300 disabled:text-slate-600 disabled:cursor-not-allowed">Tekrar Gönder</button>
+                  </div>
+                  <button onClick={handleVerifyOTP} disabled={otpLoading || otpCode.length !== 6} className="w-full bg-gradient-to-r from-emerald-500 to-teal-500 text-white font-black py-4 rounded-xl shadow-lg shadow-emerald-500/30 disabled:opacity-50 active:scale-[0.98]">
+                    {otpLoading ? 'Doğrulanıyor...' : '✓ Kodu Doğrula'}
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
 
-          <div>
-            <label className="block text-sm font-semibold text-slate-700 mb-1">Şifre</label>
-            <input type="password" required value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" className="w-full px-5 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-600" />
-          </div>
-
-          <button type="submit" disabled={success} className="w-full bg-blue-950 text-white font-bold py-3.5 rounded-xl hover:bg-blue-900 transition-all duration-300 active:scale-95 disabled:opacity-50 mt-2">
-            Başvuruyu Tamamla
-          </button>
-        </form>
-
-        <p className="text-center text-slate-600 mt-6 text-sm">
-          Zaten hesabınız var mı? <Link to="/login" className="text-blue-600 font-bold hover:text-blue-800">Giriş Yapın</Link>
-        </p>
+          <p className="text-center text-slate-500 mt-6 text-sm font-bold">
+            Zaten hesabınız var mı? <Link to="/login" className="text-emerald-400 font-bold hover:underline">Giriş Yapın</Link>
+          </p>
+        </div>
       </div>
     </div>
   );

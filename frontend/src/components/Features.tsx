@@ -1,4 +1,3 @@
-import React from 'react';
 
 const featureList = [
   { icon: '✅', title: 'Güvenilir Profesyoneller', text: 'Onaylı ve değerlendirilmiş uzmanlarla çalışın. Her işin arkasındayız.' },
