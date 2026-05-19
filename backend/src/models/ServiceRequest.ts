@@ -12,6 +12,10 @@ export interface IServiceRequest extends Document {
     movingDate?: string;
     elevatorFrom?: string;
     elevatorTo?: string;
+    fromIl?: string;
+    fromIlce?: string;
+    toIl?: string;
+    toIlce?: string;
   };
   status: 'active' | 'completed' | 'cancelled';
   proposalCount?: number; // ✅ EKLENDİ: frontend rekabet göstergesi için
@@ -29,7 +33,11 @@ const ServiceRequestSchema: Schema = new Schema({
     houseSize: { type: String },
     movingDate: { type: String },
     elevatorFrom: { type: String },
-    elevatorTo: { type: String }
+    elevatorTo: { type: String },
+    fromIl: { type: String },
+    fromIlce: { type: String },
+    toIl: { type: String },
+    toIlce: { type: String }
   },
   status: { type: String, enum: ['active', 'completed', 'cancelled'], default: 'active' },
   proposalCount: { type: Number, default: 0 }, // ✅ EKLENDİ

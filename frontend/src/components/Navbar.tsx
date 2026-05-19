@@ -11,25 +11,25 @@ export default function Navbar() {
   };
 
   return (
-    <nav className="bg-white border-b border-gray-200 sticky top-0 z-50 font-sans shadow-sm">
-      <div className="max-w-[1920px] mx-auto px-6 lg:px-10 h-24 flex items-center justify-between">
+    <nav className="bg-white/90 backdrop-blur-xl border-b border-navy-100 sticky top-0 z-50 font-sans shadow-sm">
+      <div className="max-w-[1920px] mx-auto px-6 lg:px-10 h-20 flex items-center justify-between">
         
         {/* LOGO ALANI */}
         <Link to="/" className="flex items-center gap-3">
-          <div className="w-12 h-12 bg-red-600 flex items-center justify-center text-white font-black text-2xl">
-            C
+          <div className="w-11 h-11 bg-navy-800 rounded-xl flex items-center justify-center text-white font-black text-lg shadow-lg shadow-navy-800/20">
+            HP
           </div>
-          <span className="font-black text-3xl tracking-tight text-gray-900">
-            CORE<span className="text-red-600">PRO</span>
+          <span className="font-black text-2xl tracking-tight text-navy-900">
+            Hizmet<span className="text-gold-500">Pazarı</span>
           </span>
         </Link>
 
         {/* ORTA MENÜ LİNKLERİ (Masaüstü) */}
-        <div className="hidden md:flex items-center gap-8 font-bold text-gray-500 uppercase tracking-widest text-sm">
-          <Link to="/" className="hover:text-red-600 transition-colors">Ana Sayfa</Link>
-          <Link to="#" className="hover:text-red-600 transition-colors">Kurumsal</Link>
-          <Link to="#" className="hover:text-red-600 transition-colors">Hizmet Ağımız</Link>
-          <Link to="#" className="hover:text-red-600 transition-colors">İletişim</Link>
+        <div className="hidden md:flex items-center gap-8 font-bold text-navy-400 text-sm">
+          <Link to="/" className="hover:text-navy-800 transition-colors">Ana Sayfa</Link>
+          <Link to="/kategoriler" className="hover:text-navy-800 transition-colors">Kategoriler</Link>
+          <Link to="/profesyoneller" className="hover:text-navy-800 transition-colors">Profesyoneller</Link>
+          <Link to="#" className="hover:text-navy-800 transition-colors">İletişim</Link>
         </div>
 
         {/* SAĞ KULLANICI ALANI */}
@@ -38,24 +38,24 @@ export default function Navbar() {
             <>
               <Link 
                 to={user.role === 'provider' ? '/hizmet-paneli' : '/musteri-paneli'} 
-                className="text-gray-900 font-bold hover:text-red-600 transition-colors hidden sm:block"
+                className="text-navy-800 font-bold hover:text-gold-500 transition-colors hidden sm:block"
               >
                 Panelim ({user.name})
               </Link>
               <button 
                 onClick={handleLogout} 
-                className="bg-gray-100 text-gray-900 px-6 py-3 font-bold text-sm uppercase tracking-widest hover:bg-gray-200 transition-colors"
+                className="bg-navy-50 text-navy-700 px-6 py-2.5 rounded-xl font-bold text-sm hover:bg-navy-100 transition-colors"
               >
                 Çıkış
               </button>
             </>
           ) : (
             <>
-              <Link to="/login" className="text-gray-900 font-bold hover:text-red-600 transition-colors px-4 hidden sm:block">
-                Firma / Üye Girişi
+              <Link to="/login" className="text-navy-600 font-bold hover:text-navy-800 transition-colors px-4 hidden sm:block">
+                Giriş Yap
               </Link>
-              <Link to="/kayit" className="bg-red-600 text-white px-8 py-4 font-bold hover:bg-red-700 transition-colors uppercase tracking-widest text-sm whitespace-nowrap">
-                Hesap Oluştur
+              <Link to="/register" className="bg-navy-800 text-white px-6 py-2.5 rounded-xl font-bold hover:bg-navy-700 transition-colors shadow-lg shadow-navy-800/20 text-sm whitespace-nowrap">
+                Ücretsiz Kayıt
               </Link>
             </>
           )}

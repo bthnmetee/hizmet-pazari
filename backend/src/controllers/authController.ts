@@ -4,16 +4,30 @@ import jwt from 'jsonwebtoken';
 import Customer from '../models/Customer';
 import Provider from '../models/Provider';
 
+const getPrimaryServiceCategory = (service?: string): string => {
+  if (!service) return 'Genel';
+  return service.includes('nakliyat') ? 'nakliyat' : service;
+};
+
 // 🚀 MÜŞTERİ KAYIT (Sadece Metin Verileri)
 export const registerCustomer = async (req: Request, res: Response) => {
   try {
     const { name, email, password, phoneNumber } = req.body;
 
-    const existingUser = await Customer.findOne({ email });
+    const cleanEmail = email?.trim().toLowerCase();
+    const cleanPhone = phoneNumber?.trim();
+
+    const existingUser = await Customer.findOne({ email: cleanEmail });
     if (existingUser) return res.status(400).json({ message: 'Bu e-posta zaten kullanımda.' });
 
     const hashedPassword = await bcrypt.hash(password, 10);
-    const newCustomer = new Customer({ name, email, password: hashedPassword, phoneNumber, isPhoneVerified: !!phoneNumber });
+    const newCustomer = new Customer({ 
+      name: name?.trim(), 
+      email: cleanEmail, 
+      password: hashedPassword, 
+      phoneNumber: cleanPhone, 
+      isPhoneVerified: !!cleanPhone 
+    });
 
     await newCustomer.save();
     res.status(201).json({ message: 'Müşteri kaydı başarıyla oluşturuldu.' });
@@ -32,7 +46,10 @@ export const registerProvider = async (req: Request, res: Response) => {
       return res.status(400).json({ message: 'Vergi levhası yüklenmesi zorunludur.' });
     }
 
-    const existingProvider = await Provider.findOne({ email });
+    const cleanEmail = email?.trim().toLowerCase();
+    const cleanPhone = phoneNumber?.trim();
+
+    const existingProvider = await Provider.findOne({ email: cleanEmail });
     if (existingProvider) return res.status(400).json({ message: 'Bu e-posta zaten kullanımda.' });
 
     const hashedPassword = await bcrypt.hash(password, 10);
@@ -45,12 +62,12 @@ export const registerProvider = async (req: Request, res: Response) => {
     }
 
     const newProvider = new Provider({
-      name,
-      email,
+      name: name?.trim(),
+      email: cleanEmail,
       password: hashedPassword,
-      companyName,
-      phoneNumber,
-      serviceCategory: parsedServices.length > 0 ? parsedServices[0] : 'Genel',
+      companyName: companyName?.trim(),
+      phoneNumber: cleanPhone,
+      serviceCategory: getPrimaryServiceCategory(parsedServices[0]),
       services: parsedServices,
       taxCertificateUrl: req.file.path, // ✅ DÜZELTME: Model alan adıyla eşleşiyor
       isApproved: false
@@ -78,15 +95,13 @@ export const registerProvider = async (req: Request, res: Response) => {
 // 🔑 GİRİŞ YAP (E-Posta veya Telefon ile Çift Tablo Kontrollü)
 export const login = async (req: Request, res: Response) => {
   try {
-    console.log("Giriş isteği geldi. Frontend'den gelen veri:", req.body);
-
     const { identifier, password } = req.body;
 
     if (!identifier || !password) {
       return res.status(400).json({ message: 'Lütfen giriş bilgilerinizi eksiksiz doldurun.' });
     }
 
-    const cleanIdentifier = identifier.trim();
+    const cleanIdentifier = identifier.trim().toLowerCase();
 
     const searchCriteria = {
       $or: [
@@ -95,7 +110,7 @@ export const login = async (req: Request, res: Response) => {
       ]
     };
 
-    console.log("Veritabanında aranan kriter:", JSON.stringify(searchCriteria));
+
 
     // Önce Müşteri tablosunda ara
     let user = await Customer.findOne(searchCriteria).select('+password');
@@ -109,16 +124,16 @@ export const login = async (req: Request, res: Response) => {
 
     // İki tabloda da yoksa
     if (!user) {
-      console.log("❌ KULLANICI BULUNAMADI! Eşleşme yok.");
+
       return res.status(404).json({ message: 'Bu bilgilerle kayıtlı bir kullanıcı bulunamadı.' });
     }
 
     // ✅ Admin kontrolü (email bazlı)
-    if (user.email === process.env.ADMIN_EMAIL) {
+    if (process.env.ADMIN_EMAIL && user.email.toLowerCase() === process.env.ADMIN_EMAIL.trim().toLowerCase()) {
       role = 'admin';
     }
 
-    console.log(`✅ Kullanıcı bulundu! Rol: ${role}, İsim: ${user.name}`);
+
 
     if (!user.password) {
       return res.status(400).json({ message: 'Bu hesabın şifre bilgisi eksik.' });
@@ -126,7 +141,7 @@ export const login = async (req: Request, res: Response) => {
 
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
-      console.log("❌ Şifre yanlış girildi.");
+
       return res.status(400).json({ message: 'Hatalı şifre girdiniz.' });
     }
 
@@ -140,7 +155,7 @@ export const login = async (req: Request, res: Response) => {
 
     const token = jwt.sign(
       { id: user._id, role: role },
-      process.env.JWT_SECRET || 'gizli_anahtar_123',
+      process.env.JWT_SECRET!,
       { expiresIn: '1d' }
     );
 
@@ -152,6 +167,7 @@ export const login = async (req: Request, res: Response) => {
         email: user.email,
         phoneNumber: (user as any).phoneNumber,
         companyName: (user as any).companyName,
+        profileImage: (user as any).profileImage || '',
         services: (user as any).services || [],
         serviceCategory: (user as any).serviceCategory || '',
         role: role
@@ -173,12 +189,14 @@ export const forgotPassword = async (req: Request, res: Response) => {
       return res.status(400).json({ message: 'E-posta adresi gereklidir.' });
     }
 
+    const cleanEmail = email.trim().toLowerCase();
+
     // Kullanıcıyı iki tabloda da ara
-    let user: any = await Customer.findOne({ email });
+    let user: any = await Customer.findOne({ email: cleanEmail });
     let userType = 'customer';
     
     if (!user) {
-      user = await Provider.findOne({ email });
+      user = await Provider.findOne({ email: cleanEmail });
       userType = 'provider';
     }
 
@@ -189,20 +207,34 @@ export const forgotPassword = async (req: Request, res: Response) => {
     // Reset token oluştur
     const resetToken = jwt.sign(
       { id: user._id, type: userType },
-      process.env.JWT_SECRET || 'gizli_anahtar_123',
+      process.env.JWT_SECRET!,
       { expiresIn: '1h' }
     );
 
-    const resetLink = `http://localhost:5173/reset-password/${resetToken}`;
-    
-    // Geliştirici modu - terminale yaz
-    console.log("-------------------------------------------------");
-    console.log(`📩 ŞİFRE SIFIRLAMA LİNKİ`);
-    console.log(`📩 ALICI: ${email}`);
-    console.log(`🔗 LİNK: ${resetLink}`);
-    console.log("-------------------------------------------------");
+    const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173';
+    const resetLink = `${FRONTEND_URL}/reset-password/${resetToken}`;
 
-    res.json({ message: 'Şifre sıfırlama bağlantısı e-posta adresinize gönderildi.' });
+    // Mail Gönderimi
+    const { sendEmail } = await import('../utils/sendEmail');
+    const previewUrl = await sendEmail({
+      email: user.email,
+      subject: 'Hizmet Pazarı - Şifre Sıfırlama Talebi',
+      message: `
+        <h2>Şifre Sıfırlama Talebi</h2>
+        <p>Merhaba ${user.name || ''},</p>
+        <p>Hesabınız için şifre sıfırlama talebinde bulundunuz.</p>
+        <p>Lütfen aşağıdaki bağlantıya tıklayarak yeni şifrenizi belirleyin:</p>
+        <a href="${resetLink}" style="display:inline-block; padding:10px 20px; background:#1e3a8a; color:#fff; text-decoration:none; border-radius:5px;">Şifremi Sıfırla</a>
+        <br><br>
+        <p>Eğer bu talebi siz yapmadıysanız bu e-postayı dikkate almayınız.</p>
+        <p>İyi günler dileriz,<br>Hizmet Pazarı Ekibi</p>
+      `
+    });
+
+    res.json({ 
+      message: 'Şifre sıfırlama bağlantısı e-posta adresinize gönderildi.',
+      previewUrl: previewUrl || undefined
+    });
   } catch (error) {
     console.error("Forgot Password Hatası:", error);
     res.status(500).json({ message: 'Sunucu hatası oluştu.' });
@@ -220,7 +252,7 @@ export const resetPassword = async (req: Request, res: Response) => {
     }
 
     // Token doğrula
-    const decoded: any = jwt.verify(token as string, process.env.JWT_SECRET || 'gizli_anahtar_123');
+    const decoded: any = jwt.verify(token as string, process.env.JWT_SECRET!);
     
     const hashedPassword = await bcrypt.hash(newPassword, 10);
 

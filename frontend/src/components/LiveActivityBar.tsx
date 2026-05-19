@@ -13,14 +13,14 @@ interface Aktivite {
 }
 
 const DEMO_AKTİVİTELER: Omit<Aktivite, 'id' | 'zaman'>[] = [
-    { icon: '🧹', text: 'Ankara\'dan Mehmet B. ev temizliği talebi oluşturdu', renk: 'text-sky-600' },
-    { icon: '✅', text: 'İstanbul\'dan Selin K. tadilat işini tamamladı', renk: 'text-emerald-600' },
-    { icon: '⭐', text: 'Emre Y. ustasına 5 yıldız verdi', renk: 'text-amber-500' },
-    { icon: '💼', text: 'Yeni profesyonel: "Yazılım & Tasarım" kategorisine katıldı', renk: 'text-violet-600' },
-    { icon: '📩', text: 'Bursa\'dan Ayşe T. nakliyat için 4 teklif aldı', renk: 'text-rose-500' },
-    { icon: '🏆', text: 'Bu ay 1.200+ iş başarıyla tamamlandı', renk: 'text-emerald-600' },
-    { icon: '⚡', text: 'İzmir\'den Kemal A. elektrik arızasını 2 saatte çözdü', renk: 'text-orange-500' },
-    { icon: '🤝', text: 'Denizli\'den Fatma S. ile hizmet sözleşmesi imzalandı', renk: 'text-teal-600' },
+    { icon: '🧹', text: 'Ankara\'dan Mehmet B. ev temizliği talebi oluşturdu', renk: 'text-sky-500' },
+    { icon: '✅', text: 'İstanbul\'dan Selin K. tadilat işini tamamladı', renk: 'text-emerald-400' },
+    { icon: '⭐', text: 'Emre Y. ustasına 5 yıldız verdi', renk: 'text-gold-400' },
+    { icon: '💼', text: 'Yeni profesyonel: "Yazılım & Tasarım" kategorisine katıldı', renk: 'text-violet-400' },
+    { icon: '📩', text: 'Bursa\'dan Ayşe T. nakliyat için 4 teklif aldı', renk: 'text-rose-400' },
+    { icon: '🏆', text: 'Bu ay 1.200+ iş başarıyla tamamlandı', renk: 'text-emerald-400' },
+    { icon: '⚡', text: 'İzmir\'den Kemal A. elektrik arızasını 2 saatte çözdü', renk: 'text-orange-400' },
+    { icon: '🤝', text: 'Denizli\'den Fatma S. ile hizmet sözleşmesi imzalandı', renk: 'text-teal-400' },
 ];
 
 function zamanFarki() {
@@ -45,15 +45,12 @@ export default function LiveActivityBar() {
     const [aktifIndex, setAktifIndex] = useState(0);
     const [kapat, setKapat] = useState(false);
 
-    // DÜZELTME 1: setInterval mantığı basitleştirildi ve TS hatası önlendi
     useEffect(() => {
-        // window.setInterval diyerek tarayıcı ortamını zorluyoruz
         const timerId = window.setInterval(() => {
             setAktiviteler(prev => {
                 const yeniList = [yeniAktivite(), ...prev].slice(0, 10);
                 return yeniList;
             });
-            // Kullanıcı eski mesajlara bakmıyorsa (0. indexteyse), yeni geleni göstersin
             setAktifIndex(current => (current === 0 ? 0 : current + 1));
         }, 6000);
 
@@ -68,19 +65,18 @@ export default function LiveActivityBar() {
     const current = aktiviteler[aktifIndex];
 
     return (
-        <div className="w-full bg-gradient-to-r from-gray-950 via-gray-900 to-gray-950 border-b border-gray-800 py-2 px-4">
+        <div className="w-full bg-navy-900 border-b border-navy-700/50 py-2 px-4">
             <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
                 {/* Canlı nokta */}
                 <div className="flex items-center gap-2 shrink-0">
                     <span className="relative flex h-2 w-2">
-                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-                        <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-gold-400 opacity-75" />
+                        <span className="relative inline-flex rounded-full h-2 w-2 bg-gold-500" />
                     </span>
-                    <span className="text-gray-500 text-xs font-bold uppercase tracking-widest hidden sm:block">Canlı</span>
+                    <span className="text-navy-400 text-xs font-bold uppercase tracking-widest hidden sm:block">Canlı</span>
                 </div>
 
                 {/* Mesaj */}
-                {/* DÜZELTME 2: 'key' prop'una id atayarak, her yeni mesajda div'in baştan render olmasını ve animasyonun tetiklenmesini sağladık */}
                 <div
                     key={current.id}
                     className="flex-1 flex items-center gap-2 min-w-0 overflow-hidden animate-[slideIn_0.4s_ease-out]"
@@ -89,7 +85,7 @@ export default function LiveActivityBar() {
                     <p className={`text-xs font-semibold truncate ${current.renk}`}>
                         {current.text}
                     </p>
-                    <span className="text-gray-600 text-xs shrink-0 hidden sm:block">{current.zaman}</span>
+                    <span className="text-navy-500 text-xs shrink-0 hidden sm:block">{current.zaman}</span>
                 </div>
 
                 {/* Navigasyon */}
@@ -97,28 +93,27 @@ export default function LiveActivityBar() {
                     <button
                         onClick={önceki}
                         disabled={aktifIndex === 0}
-                        className="w-6 h-6 flex items-center justify-center text-gray-600 hover:text-white disabled:opacity-30 transition-colors text-xs"
+                        className="w-6 h-6 flex items-center justify-center text-navy-500 hover:text-white disabled:opacity-30 transition-colors text-xs"
                     >
                         ←
                     </button>
-                    <span className="text-gray-700 text-xs font-bold">{aktifIndex + 1}/{aktiviteler.length}</span>
+                    <span className="text-navy-500 text-xs font-bold">{aktifIndex + 1}/{aktiviteler.length}</span>
                     <button
                         onClick={sonraki}
                         disabled={aktifIndex === aktiviteler.length - 1}
-                        className="w-6 h-6 flex items-center justify-center text-gray-600 hover:text-white disabled:opacity-30 transition-colors text-xs"
+                        className="w-6 h-6 flex items-center justify-center text-navy-500 hover:text-white disabled:opacity-30 transition-colors text-xs"
                     >
                         →
                     </button>
                     <button
                         onClick={() => setKapat(true)}
-                        className="w-6 h-6 flex items-center justify-center text-gray-700 hover:text-gray-400 transition-colors ml-1"
+                        className="w-6 h-6 flex items-center justify-center text-navy-500 hover:text-navy-300 transition-colors ml-1"
                     >
                         ✕
                     </button>
                 </div>
             </div>
 
-            {/* DÜZELTME 3: Tailwind ile uyumlu çalışması için keyframes tanımını koruyoruz, ancak Tailwind'in arbitrary values özelliğini kullandık */}
             <style>{`
                 @keyframes slideIn {
                     0% { opacity: 0; transform: translateY(-10px); }

@@ -91,41 +91,41 @@ export default function TrustScoreCard({ data, profesyonelAdi, expanded = false 
     ];
 
     return (
-        <div className="bg-white border border-gray-100 rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-shadow">
+        <div className="bg-white border border-navy-100 rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-shadow">
             {/* Özet satırı */}
             <button
-                className="w-full flex items-center justify-between px-4 py-3 hover:bg-gray-50 transition-colors"
+                className="w-full flex items-center justify-between px-4 py-3 hover:bg-navy-50/50 transition-colors"
                 onClick={() => setAcik(a => !a)}
             >
                 <div className="flex items-center gap-3">
                     <GuvenHalkasi score={skor} size={56} />
                     <div className="text-left">
-                        <p className="text-sm font-black text-gray-900">{profesyonelAdi}</p>
-                        <p className="text-xs text-gray-400 font-medium">Güven Skoru</p>
+                        <p className="text-sm font-black text-navy-900">{profesyonelAdi}</p>
+                        <p className="text-xs text-navy-300 font-medium">Güven Skoru</p>
                     </div>
                 </div>
-                <span className={`text-gray-400 text-lg transition-transform ${acik ? 'rotate-180' : ''}`}>⌄</span>
+                <span className={`text-navy-300 text-lg transition-transform ${acik ? 'rotate-180' : ''}`}>⌄</span>
             </button>
 
             {/* Detay */}
             {acik && (
                 <div className="border-t border-gray-50 px-4 py-4 space-y-2.5">
-                    <p className="text-xs font-black text-gray-500 uppercase tracking-wider mb-3">Skor Kırılımı</p>
+                    <p className="text-xs font-black text-navy-400 uppercase tracking-wider mb-3">Skor Kırılımı</p>
                     {detaylar.map(d => (
                         <div key={d.label} className="flex items-center justify-between">
                             <div className="flex items-center gap-2">
-                                <span className={`w-2 h-2 rounded-full flex-shrink-0 ${d.ok ? 'bg-emerald-400' : 'bg-gray-200'}`} />
-                                <span className="text-xs text-gray-600 font-medium">{d.label}</span>
+                                <span className={`w-2 h-2 rounded-full flex-shrink-0 ${d.ok ? 'bg-navy-700' : 'bg-gray-200'}`} />
+                                <span className="text-xs text-navy-600 font-medium">{d.label}</span>
                             </div>
                             <div className="flex items-center gap-2">
-                                <span className={`text-xs font-bold ${d.ok ? 'text-emerald-600' : 'text-gray-400'}`}>{d.value}</span>
-                                <span className="text-xs font-black text-gray-300">+{d.puan}</span>
+                                <span className={`text-xs font-bold ${d.ok ? 'text-navy-700' : 'text-navy-300'}`}>{d.value}</span>
+                                <span className="text-xs font-black text-navy-200">+{d.puan}</span>
                             </div>
                         </div>
                     ))}
                     <div className="mt-3 pt-3 border-t border-gray-50 flex justify-between items-center">
-                        <span className="text-xs text-gray-400 font-semibold">Toplam Skor</span>
-                        <span className="text-base font-black text-emerald-500">{skor}/100</span>
+                        <span className="text-xs text-navy-300 font-semibold">Toplam Skor</span>
+                        <span className="text-base font-black text-gold-500">{skor}/100</span>
                     </div>
                 </div>
             )}

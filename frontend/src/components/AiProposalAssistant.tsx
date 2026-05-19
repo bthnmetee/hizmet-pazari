@@ -114,17 +114,17 @@ export default function AiProposalAssistant({ ilan, providerServices, onApply }:
                     <div className="space-y-4">
                         {/* Fiyat Önerisi */}
                         <div className="bg-white rounded-xl p-3 border border-violet-100">
-                            <p className="text-xs font-black text-gray-500 uppercase tracking-wider mb-2">Önerilen Fiyat Aralığı</p>
+                            <p className="text-xs font-black text-navy-400 uppercase tracking-wider mb-2">Önerilen Fiyat Aralığı</p>
                             <div className="flex items-center gap-3">
-                                <span className="text-emerald-600 font-black text-lg">₺{result.priceMin.toLocaleString('tr-TR')} – ₺{result.priceMax.toLocaleString('tr-TR')}</span>
-                                <span className="text-xs text-gray-400 font-medium">AI tahmini</span>
+                                <span className="text-navy-700 font-black text-lg">₺{result.priceMin.toLocaleString('tr-TR')} – ₺{result.priceMax.toLocaleString('tr-TR')}</span>
+                                <span className="text-xs text-navy-300 font-medium">AI tahmini</span>
                             </div>
                         </div>
 
                         {/* Mesaj Düzenleyici */}
                         <div>
                             <div className="flex items-center justify-between mb-1.5">
-                                <p className="text-xs font-black text-gray-500 uppercase tracking-wider">Teklif Mesajı</p>
+                                <p className="text-xs font-black text-navy-400 uppercase tracking-wider">Teklif Mesajı</p>
                                 <button onClick={generateProposal} className="text-xs text-violet-500 font-bold hover:text-violet-700 transition-colors">
                                     ↺ Yenile
                                 </button>
@@ -133,9 +133,9 @@ export default function AiProposalAssistant({ ilan, providerServices, onApply }:
                                 value={editedMessage}
                                 onChange={e => setEditedMessage(e.target.value)}
                                 rows={3}
-                                className="w-full px-3 py-2.5 bg-white border border-violet-200 rounded-xl text-sm font-medium text-gray-800 focus:outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-500/10 resize-none transition-all"
+                                className="w-full px-3 py-2.5 bg-white border border-violet-200 rounded-xl text-sm font-medium text-navy-800 focus:outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-500/10 resize-none transition-all"
                             />
-                            <p className="text-xs text-gray-400 mt-1">✏️ Düzenleyebilirsiniz</p>
+                            <p className="text-xs text-navy-300 mt-1">✏️ Düzenleyebilirsiniz</p>
                         </div>
 
                         {/* İpuçları */}
@@ -154,7 +154,7 @@ export default function AiProposalAssistant({ ilan, providerServices, onApply }:
 
                         {/* Fiyat input */}
                         <div>
-                            <label className="text-xs font-black text-gray-500 uppercase tracking-wider block mb-1.5">Teklifinizin Fiyatı (TL)</label>
+                            <label className="text-xs font-black text-navy-400 uppercase tracking-wider block mb-1.5">Teklifinizin Fiyatı (TL)</label>
                             <input
                                 type="number"
                                 value={editedPrice}

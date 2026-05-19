@@ -8,6 +8,7 @@ export interface IProvider extends Document {
   phoneNumber?: string;
   walletBalance: number;
   about?: string;
+  profileImage?: string;
   portfolioImages?: string[];
   serviceCategory?: string;
   services?: string[];
@@ -32,6 +33,7 @@ const ProviderSchema: Schema = new Schema({
   phoneNumber: { type: String },
   walletBalance: { type: Number, default: 0 },
   about: { type: String, default: '' },
+  profileImage: { type: String, default: '' },
   portfolioImages: [{ type: String }],
   serviceCategory: { type: String, default: 'Genel' },
   services: [{ type: String }],

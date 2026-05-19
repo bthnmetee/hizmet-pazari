@@ -3,6 +3,7 @@ import Proposal from '../models/Proposal';
 import ServiceRequest from '../models/ServiceRequest';
 import Provider from '../models/Provider';
 import Transaction from '../models/Transaction';
+import { validateContent } from '../utils/contentModeration';
 
 const PROPOSAL_CREDIT_COST = 1;
 
@@ -10,6 +11,17 @@ const PROPOSAL_CREDIT_COST = 1;
 export const createProposal = async (req: Request, res: Response) => {
   try {
     const { serviceRequestId, providerId, price, message } = req.body;
+
+    // ✅ İçerik moderasyonu — teklif mesajı kontrolü
+    if (message) {
+      const msgCheck = validateContent(message);
+      if (!msgCheck.isValid) {
+        return res.status(400).json({
+          message: 'İçerik politikası ihlali tespit edildi.',
+          errors: msgCheck.errors,
+        });
+      }
+    }
 
     const providerDoc = await Provider.findById(providerId);
     if (!providerDoc) {
@@ -32,6 +44,15 @@ export const createProposal = async (req: Request, res: Response) => {
     });
     if (existingProposal) {
       return res.status(400).json({ message: 'Bu ilana zaten teklif gönderdiniz.' });
+    }
+
+    // ✅ Maksimum 3 teklif sınırı kontrolü
+    const currentProposalCount = await Proposal.countDocuments({ serviceRequest: serviceRequestId });
+    if (currentProposalCount >= 3) {
+      return res.status(400).json({
+        message: 'Bu talep maksimum teklif sayısına (3) ulaştı. Artık teklif gönderilemez.',
+        code: 'MAX_PROPOSALS_REACHED'
+      });
     }
 
     // Kredi düş
@@ -67,7 +88,7 @@ export const createProposal = async (req: Request, res: Response) => {
     });
   } catch (error: any) {
     console.error('❌ Teklif Oluşturma Hatası:', error);
-    res.status(500).json({ message: 'Sunucu hatası: ' + error.message });
+    res.status(500).json({ message: 'Teklif oluşturulurken hata oluştu.' });
   }
 };
 
@@ -82,6 +103,17 @@ export const replyToProposal = async (req: Request, res: Response) => {
       return res.status(400).json({ message: 'Mesaj veya resim gönderin.' });
     }
 
+    // ✅ İçerik moderasyonu — mesaj yanıtı kontrolü
+    if (text && text.trim() !== '') {
+      const textCheck = validateContent(text);
+      if (!textCheck.isValid) {
+        return res.status(400).json({
+          message: 'İçerik politikası ihlali tespit edildi.',
+          errors: textCheck.errors,
+        });
+      }
+    }
+
     const proposal = await Proposal.findById(id);
     if (!proposal) return res.status(404).json({ message: 'Teklif bulunamadı.' });
 
@@ -94,7 +126,7 @@ export const replyToProposal = async (req: Request, res: Response) => {
 
     res.status(200).json({ message: 'Mesaj gönderildi.', proposal });
   } catch (error: any) {
-    res.status(500).json({ message: error.message });
+    res.status(500).json({ message: 'Mesaj gönderilirken hata oluştu.' });
   }
 };
 
@@ -119,7 +151,7 @@ export const getCustomerProposals = async (req: Request, res: Response) => {
 
     res.status(200).json(mappedProposals);
   } catch (error: any) {
-    res.status(500).json({ message: error.message });
+    res.status(500).json({ message: 'Teklifler getirilirken hata oluştu.' });
   }
 };
 
@@ -140,7 +172,7 @@ export const getProviderProposals = async (req: Request, res: Response) => {
 
     res.status(200).json(mappedProposals);
   } catch (error: any) {
-    res.status(500).json({ message: error.message });
+    res.status(500).json({ message: 'Teklifler getirilirken hata oluştu.' });
   }
 };
 
@@ -172,6 +204,6 @@ export const updateProposalStatus = async (req: Request, res: Response) => {
 
     res.status(200).json({ message: 'Durum güncellendi', proposal });
   } catch (error: any) {
-    res.status(500).json({ message: error.message });
+    res.status(500).json({ message: 'Durum güncellenirken hata oluştu.' });
   }
 };

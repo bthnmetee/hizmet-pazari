@@ -14,7 +14,7 @@ interface Props {
 }
 
 function RekabetGostergesi({ skor }: { skor: number }) {
-    const renkler = ['bg-emerald-400', 'bg-emerald-400', 'bg-amber-400', 'bg-orange-400', 'bg-red-400'];
+    const renkler = ['bg-navy-700', 'bg-navy-700', 'bg-amber-400', 'bg-orange-400', 'bg-red-400'];
     const etiketler = ['Çok Düşük', 'Düşük', 'Orta', 'Yüksek', 'Çok Yüksek'];
     const idx = Math.max(0, Math.min(4, skor - 1));
 
@@ -24,11 +24,11 @@ function RekabetGostergesi({ skor }: { skor: number }) {
                 {[1, 2, 3, 4, 5].map(i => (
                     <div
                         key={i}
-                        className={`h-2 w-3 rounded-sm transition-all ${i <= skor ? renkler[idx] : 'bg-gray-100'}`}
+                        className={`h-2 w-3 rounded-sm transition-all ${i <= skor ? renkler[idx] : 'bg-navy-100'}`}
                     />
                 ))}
             </div>
-            <span className={`text-xs font-bold ${idx <= 1 ? 'text-emerald-600' : idx === 2 ? 'text-amber-600' : 'text-red-500'}`}>
+            <span className={`text-xs font-bold ${idx <= 1 ? 'text-navy-700' : idx === 2 ? 'text-amber-600' : 'text-red-500'}`}>
                 {etiketler[idx]} Rekabet
             </span>
         </div>
@@ -60,7 +60,7 @@ export default function ProposalCostPreview({
     const rekabetSkoru = skorHesapla(gercekTeklifSayisi);
 
     return (
-        <div className={`rounded-2xl border-2 overflow-hidden transition-all ${yeterliKredi ? 'border-emerald-100 bg-emerald-50/50' : 'border-red-100 bg-red-50/50'}`}>
+        <div className={`rounded-2xl border-2 overflow-hidden transition-all ${yeterliKredi ? 'border-emerald-100 bg-navy-50/50' : 'border-red-100 bg-red-50/50'}`}>
             {/* Özet */}
             <div className="px-4 py-3 flex items-center justify-between">
                 <div className="flex items-center gap-3">
@@ -68,10 +68,10 @@ export default function ProposalCostPreview({
                         {yeterliKredi ? '💳' : '⚠️'}
                     </div>
                     <div>
-                        <p className="text-sm font-black text-gray-900">
+                        <p className="text-sm font-black text-navy-900">
                             {yeterliKredi ? 'Teklif Gönderebilirsiniz' : 'Yetersiz Kredi'}
                         </p>
-                        <p className={`text-xs font-medium ${yeterliKredi ? 'text-emerald-600' : 'text-red-500'}`}>
+                        <p className={`text-xs font-medium ${yeterliKredi ? 'text-navy-700' : 'text-red-500'}`}>
                             {yeterliKredi
                                 ? `Bu teklif ${teklifMaliyeti} kredi harcar`
                                 : `${Math.max(0, teklifMaliyeti - bakiye)} kredi daha gerekli`}
@@ -80,7 +80,7 @@ export default function ProposalCostPreview({
                 </div>
                 <button
                     onClick={() => setOnayAcik(a => !a)}
-                    className="text-gray-400 hover:text-gray-600 text-xs font-bold transition-colors"
+                    className="text-navy-300 hover:text-navy-600 text-xs font-bold transition-colors"
                 >
                     {onayAcik ? 'Gizle ↑' : 'Detay ↓'}
                 </button>
@@ -90,14 +90,14 @@ export default function ProposalCostPreview({
             {onayAcik && (
                 <div className="border-t border-white/80 px-4 py-4 space-y-3 bg-white/60">
                     <div className="grid grid-cols-2 gap-3">
-                        <div className="bg-white rounded-xl p-3 border border-gray-100">
-                            <p className="text-xs text-gray-400 font-medium mb-1">Mevcut Bakiye</p>
-                            <p className={`text-lg font-black ${yeterliKredi ? 'text-gray-900' : 'text-red-500'}`}>
+                        <div className="bg-white rounded-xl p-3 border border-navy-100">
+                            <p className="text-xs text-navy-300 font-medium mb-1">Mevcut Bakiye</p>
+                            <p className={`text-lg font-black ${yeterliKredi ? 'text-navy-900' : 'text-red-500'}`}>
                                 {bakiye} <span className="text-sm font-semibold">Kredi</span>
                             </p>
                         </div>
-                        <div className="bg-white rounded-xl p-3 border border-gray-100">
-                            <p className="text-xs text-gray-400 font-medium mb-1">Harcanan</p>
+                        <div className="bg-white rounded-xl p-3 border border-navy-100">
+                            <p className="text-xs text-navy-300 font-medium mb-1">Harcanan</p>
                             <p className="text-lg font-black text-orange-500">
                                 -{teklifMaliyeti} <span className="text-sm font-semibold">Kredi</span>
                             </p>
@@ -105,19 +105,19 @@ export default function ProposalCostPreview({
                     </div>
 
                     {/* Rekabet */}
-                    <div className="bg-white rounded-xl p-3 border border-gray-100">
-                        <p className="text-xs text-gray-400 font-medium mb-2">İlan Rekabet Durumu</p>
+                    <div className="bg-white rounded-xl p-3 border border-navy-100">
+                        <p className="text-xs text-navy-300 font-medium mb-2">İlan Rekabet Durumu</p>
                         <RekabetGostergesi skor={rekabetSkoru} />
-                        <p className="text-xs text-gray-400 mt-1.5">
-                            Bu ilana şu ana kadar <strong className="text-gray-600">{gercekTeklifSayisi} teklif</strong> geldi.
+                        <p className="text-xs text-navy-300 mt-1.5">
+                            Bu ilana şu ana kadar <strong className="text-navy-600">{gercekTeklifSayisi} teklif</strong> geldi.
                         </p>
                     </div>
 
                     {/* Potansiyel kazanç */}
                     {teklifFiyati > 0 && (
-                        <div className="bg-emerald-50 rounded-xl p-3 border border-emerald-100 flex justify-between items-center">
+                        <div className="bg-navy-50 rounded-xl p-3 border border-emerald-100 flex justify-between items-center">
                             <p className="text-xs text-emerald-700 font-medium">İşi kazanırsanız tahmini kazanç</p>
-                            <p className="text-base font-black text-emerald-600">
+                            <p className="text-base font-black text-navy-700">
                                 ₺{potansiyelKazan.toLocaleString('tr-TR', { maximumFractionDigits: 0 })}
                             </p>
                         </div>
@@ -132,7 +132,7 @@ export default function ProposalCostPreview({
                         onClick={onGonder}
                         disabled={!gondermeyiOnayla}
                         className={`w-full py-3 text-white font-black rounded-xl transition-all text-sm shadow-sm ${gondermeyiOnayla
-                                ? 'bg-emerald-500 hover:bg-emerald-600 shadow-emerald-500/20 hover:-translate-y-0.5'
+                                ? 'bg-navy-800 hover:bg-navy-800 shadow-navy-800/20 hover:-translate-y-0.5'
                                 : 'bg-gray-400 cursor-not-allowed opacity-70'
                             }`}
                     >

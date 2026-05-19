@@ -18,7 +18,7 @@ export const getApprovedProviders = async (req: Request, res: Response) => {
 export const getProviderShowcase = async (req: Request, res: Response) => {
   try {
     const providers = await Provider.find({ isApproved: true })
-      .select('name companyName serviceCategory services about averageRating reviewCount completedJobs cancelRate avgResponseMinutes monthsOnPlatform taxCertificateUrl isApproved')
+      .select('name companyName serviceCategory services about profileImage averageRating reviewCount completedJobs cancelRate avgResponseMinutes monthsOnPlatform taxCertificateUrl isApproved')
       .sort({ averageRating: -1 })
       .limit(12)
       .lean();

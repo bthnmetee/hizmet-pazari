@@ -3,10 +3,6 @@ import { useNavigate } from 'react-router-dom';
 
 // ─────────────────────────────────────────────
 //  AKİLLI HİZMET EŞLEŞTİRME  –  SmartMatch
-//  Hero bölümünde mevcut arama kutusunun
-//  ALTINA eklenir. Kullanıcıya 3 soru sorarak
-//  hangi kategoriyi & profesyoneli araması
-//  gerektiğini önerir.
 // ─────────────────────────────────────────────
 
 interface Step {
@@ -112,18 +108,18 @@ export default function SmartMatch() {
             {!open ? (
                 <button
                     onClick={() => setOpen(true)}
-                    className="w-full flex items-center justify-center gap-3 py-4 rounded-2xl border-2 border-dashed border-emerald-200 text-emerald-600 font-bold text-sm hover:bg-emerald-50 hover:border-emerald-300 transition-all group"
+                    className="w-full flex items-center justify-center gap-3 py-4 rounded-2xl border-2 border-dashed border-navy-200 text-navy-600 font-bold text-sm hover:bg-navy-50 hover:border-navy-300 transition-all group"
                 >
                     <span className="text-xl group-hover:scale-125 transition-transform">🤖</span>
                     Hangi hizmete ihtiyacınız var? <span className="underline underline-offset-2">Akıllı Asistan ile Bul</span>
-                    <span className="ml-1 px-2 py-0.5 bg-emerald-100 text-emerald-700 rounded-full text-xs font-black">YENİ</span>
+                    <span className="ml-1 px-2 py-0.5 bg-gold-100 text-gold-600 rounded-full text-xs font-black">YENİ</span>
                 </button>
             ) : (
                 <div
-                    className={`bg-white border-2 border-emerald-100 rounded-3xl shadow-2xl shadow-emerald-500/10 overflow-hidden transition-all duration-300 ${animating ? 'opacity-50 scale-[0.98]' : 'opacity-100 scale-100'}`}
+                    className={`bg-white border-2 border-navy-100 rounded-3xl shadow-2xl shadow-navy-500/10 overflow-hidden transition-all duration-300 ${animating ? 'opacity-50 scale-[0.98]' : 'opacity-100 scale-100'}`}
                 >
                     {/* Header */}
-                    <div className="bg-gradient-to-r from-emerald-500 to-teal-500 px-6 py-4 flex justify-between items-center">
+                    <div className="bg-gradient-to-r from-navy-800 to-navy-700 px-6 py-4 flex justify-between items-center">
                         <div className="flex items-center gap-2">
                             <span className="text-2xl">🤖</span>
                             <span className="text-white font-black text-sm">Akıllı Hizmet Asistanı</span>
@@ -146,54 +142,54 @@ export default function SmartMatch() {
                                     {['start', ...Object.keys(ADIMLAR).filter(k => k !== 'start')].slice(0, 3).map((_, i) => (
                                         <div
                                             key={i}
-                                            className={`h-1 flex-1 rounded-full transition-all ${i <= history.length ? 'bg-emerald-500' : 'bg-gray-100'}`}
+                                            className={`h-1 flex-1 rounded-full transition-all ${i <= history.length ? 'bg-navy-800' : 'bg-navy-100'}`}
                                         />
                                     ))}
                                 </div>
 
-                                <p className="text-gray-900 font-black text-lg mb-5">{step.question}</p>
+                                <p className="text-navy-800 font-black text-lg mb-5">{step.question}</p>
 
                                 <div className="grid grid-cols-2 gap-3">
                                     {step.options.map(opt => (
                                         <button
                                             key={opt.label}
                                             onClick={() => handleOption(opt)}
-                                            className="flex items-center gap-3 p-4 rounded-2xl border-2 border-gray-100 hover:border-emerald-300 hover:bg-emerald-50 transition-all text-left group hover:-translate-y-0.5 hover:shadow-lg hover:shadow-emerald-500/10"
+                                            className="flex items-center gap-3 p-4 rounded-2xl border-2 border-navy-100 hover:border-navy-300 hover:bg-navy-50 transition-all text-left group hover:-translate-y-0.5 hover:shadow-lg hover:shadow-navy-500/5"
                                         >
                                             <span className="text-2xl group-hover:scale-125 transition-transform">{opt.icon}</span>
-                                            <span className="text-sm font-bold text-gray-800 group-hover:text-emerald-700">{opt.label}</span>
+                                            <span className="text-sm font-bold text-navy-700 group-hover:text-navy-900">{opt.label}</span>
                                         </button>
                                     ))}
                                 </div>
                             </>
                         ) : (
                             <div className="text-center py-2">
-                                <div className="inline-flex items-center justify-center w-20 h-20 bg-emerald-50 rounded-3xl text-5xl mb-4 shadow-lg shadow-emerald-500/10 animate-bounce">
+                                <div className="inline-flex items-center justify-center w-20 h-20 bg-navy-50 rounded-3xl text-5xl mb-4 shadow-lg shadow-navy-500/10 animate-bounce">
                                     {result.icon}
                                 </div>
-                                <h3 className="text-2xl font-black text-gray-900 mb-2">
+                                <h3 className="text-2xl font-black text-navy-900 mb-2">
                                     {result.label} için<br />
-                                    <span className="text-emerald-500">{info?.count}+ Profesyonel</span> Hazır!
+                                    <span className="text-gold-500">{info?.count}+ Profesyonel</span> Hazır!
                                 </h3>
                                 <div className="flex justify-center items-center gap-1 mb-2">
                                     {[1, 2, 3, 4, 5].map(s => (
                                         <span key={s} className={`text-lg ${s <= Math.floor(info?.avg ?? 0) ? 'text-amber-400' : 'text-gray-200'}`}>★</span>
                                     ))}
-                                    <span className="text-sm font-bold text-gray-500 ml-1">Ort. {info?.avg} puan</span>
+                                    <span className="text-sm font-bold text-navy-400 ml-1">Ort. {info?.avg} puan</span>
                                 </div>
-                                <p className="text-gray-400 text-sm mb-6 font-medium">
-                                    Ortalama <strong className="text-gray-700">48 dakika</strong> içinde ilk teklifinizi alacaksınız.
+                                <p className="text-navy-300 text-sm mb-6 font-medium">
+                                    Ortalama <strong className="text-navy-700">48 dakika</strong> içinde ilk teklifinizi alacaksınız.
                                 </p>
                                 <div className="flex gap-3">
                                     <button
                                         onClick={() => navigate(`/register?category=${result.category}`)}
-                                        className="flex-1 py-3.5 bg-emerald-500 text-white font-black rounded-2xl shadow-lg shadow-emerald-500/25 hover:bg-emerald-600 transition-all hover:-translate-y-0.5"
+                                        className="flex-1 py-3.5 bg-navy-800 text-white font-black rounded-2xl shadow-lg shadow-navy-800/20 hover:bg-navy-700 transition-all hover:-translate-y-0.5"
                                     >
                                         Teklif Al →
                                     </button>
                                     <button
                                         onClick={handleReset}
-                                        className="px-4 py-3.5 border-2 border-gray-200 text-gray-500 font-bold rounded-2xl hover:border-gray-300 transition"
+                                        className="px-4 py-3.5 border-2 border-navy-200 text-navy-400 font-bold rounded-2xl hover:border-navy-300 transition"
                                     >
                                         ↺
                                     </button>

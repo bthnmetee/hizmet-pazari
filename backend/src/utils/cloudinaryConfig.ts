@@ -23,4 +23,7 @@ const storage = new CloudinaryStorage({
   } as any,
 });
 
-export const uploadCloud = multer({ storage });
+export const uploadCloud = multer({ 
+  storage,
+  limits: { fileSize: 5 * 1024 * 1024 } // ✅ Maksimum 5MB dosya boyutu
+});

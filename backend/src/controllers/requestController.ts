@@ -74,7 +74,7 @@ export const getActiveRequests = async (req: Request, res: Response) => {
     }
 
     const sortCondition = sortDate === 'oldest' ? { createdAt: 1 } : { createdAt: -1 };
-    const requests = await ServiceRequest.find(query).sort(sortCondition as any);
+    const requests = await ServiceRequest.find(query).populate('customer', 'name createdAt').sort(sortCondition as any);
     res.status(200).json(requests);
   } catch (error: any) {
     res.status(500).json({ message: error.message });
