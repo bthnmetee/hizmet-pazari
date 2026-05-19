@@ -48,9 +48,12 @@ app.use(helmet({
   contentSecurityPolicy: isProduction ? undefined : false, // Dev'de CSP devre dışı
 }));
 
-// ✅ CORS — Kaynak paylaşım kontrolü (env var'dan okunan origin)
-const CORS_ORIGIN = process.env.CORS_ORIGIN || 'http://localhost:5173';
-app.use(cors({ origin: CORS_ORIGIN, credentials: true }));
+const allowedOrigins = [
+  'http://localhost:5173',
+  'https://hizmet-pazari-projesi.vercel.app',
+  process.env.CORS_ORIGIN,
+].filter(Boolean);
+app.use(cors({ origin: allowedOrigins, credentials: true }));
 
 // ✅ Body Size Limiti — büyük payload'ları engelle
 app.use(express.json({ limit: '10kb' }));
