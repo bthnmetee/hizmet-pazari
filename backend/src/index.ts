@@ -107,7 +107,8 @@ const frontendDistPath = path.join(__dirname, '..', '..', 'frontend', 'dist');
 if (isProduction) {
   app.use(express.static(frontendDistPath));
   // SPA fallback — Tanımsız rotaları index.html'e yönlendir
-  app.get('*path', (req, res) => {
+  app.get('*path', (req, res, next) => {
+    if (req.path.startsWith('/api')) return next();
     // API rotalarını atla
     if (req.path.startsWith('/api')) return next();
     res.sendFile(path.join(frontendDistPath, 'index.html'));
