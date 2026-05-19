@@ -1,6 +1,5 @@
 import { useState, type FormEvent } from 'react';
 import axiosInstance from '../utils/axiosInstance';
-import { useAuth } from '../context/AuthContext';
 
 interface PasswordChangeSettingsProps {
   userId: string;
