@@ -10,7 +10,7 @@ import rateLimit from 'express-rate-limit';
 import authRoutes from './routes/authRoutes';
 import requestRoutes from './routes/requestRoutes';
 import proposalRoutes from './routes/proposalRoutes';
-import providerRoutes from './routes/providerRoutes'; 
+import providerRoutes from './routes/providerRoutes';
 import adminRoutes from './routes/adminRoutes';
 import reviewRoutes from './routes/reviewRoutes';
 import walletRoutes from './routes/walletRoutes';
@@ -93,7 +93,7 @@ app.use('/uploads', express.static(path.join(__dirname, '..', 'uploads')));
 app.use('/api/auth', authRoutes);
 app.use('/api/requests', requestRoutes);
 app.use('/api/proposals', proposalRoutes);
-app.use('/api/providers', providerRoutes); 
+app.use('/api/providers', providerRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/reviews', reviewRoutes);
 app.use('/api/wallet', walletRoutes);
@@ -107,7 +107,7 @@ const frontendDistPath = path.join(__dirname, '..', '..', 'frontend', 'dist');
 if (isProduction) {
   app.use(express.static(frontendDistPath));
   // SPA fallback — Tanımsız rotaları index.html'e yönlendir
-  app.get('*', (req, res, next) => {
+  app.get('*path', (req, res) => {
     // API rotalarını atla
     if (req.path.startsWith('/api')) return next();
     res.sendFile(path.join(frontendDistPath, 'index.html'));
@@ -122,15 +122,15 @@ app.use((err: any, req: express.Request, res: express.Response, next: express.Ne
   } else {
     console.error('Global Hata:', err.message);
   }
-  res.status(err.status || 500).json({ 
-    message: isProduction 
-      ? 'Sunucu hatası oluştu.' 
+  res.status(err.status || 500).json({
+    message: isProduction
+      ? 'Sunucu hatası oluştu.'
       : err.message || 'Sunucu hatası oluştu.'
   });
 });
 
 const PORT = process.env.PORT || 5000;
-const MONGO_URI = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/hizmet_pazari'; 
+const MONGO_URI = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/hizmet_pazari';
 
 // MongoDB Bağlantısı ve Sunucuyu Başlatma
 mongoose.connect(MONGO_URI)
