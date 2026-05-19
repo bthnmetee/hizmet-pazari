@@ -1,4 +1,4 @@
-import React, { useState, type FormEvent } from 'react';
+import { useState, type FormEvent } from 'react';
 import axiosInstance from '../utils/axiosInstance';
 import { useAuth } from '../context/AuthContext';
 
@@ -8,13 +8,12 @@ interface PasswordChangeSettingsProps {
 }
 
 export default function PasswordChangeSettings({ userId, role }: PasswordChangeSettingsProps) {
-  const { logout } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
-  
+
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [newPasswordConfirm, setNewPasswordConfirm] = useState('');
-  
+
   const [showCurrent, setShowCurrent] = useState(false);
   const [showNew, setShowNew] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
@@ -70,7 +69,7 @@ export default function PasswordChangeSettings({ userId, role }: PasswordChangeS
 
   if (!isEditing) {
     return (
-      <div 
+      <div
         onClick={() => setIsEditing(true)}
         className="flex items-center justify-between py-4 cursor-pointer hover:bg-gray-50 transition-colors border-b border-gray-100"
       >
@@ -113,8 +112,8 @@ export default function PasswordChangeSettings({ userId, role }: PasswordChangeS
           <div>
             <label className="block text-[13px] font-bold text-gray-900 mb-1.5">Eski şifre</label>
             <div className="relative">
-              <input 
-                type={showCurrent ? "text" : "password"} 
+              <input
+                type={showCurrent ? "text" : "password"}
                 placeholder="Şifreni gir"
                 required
                 className="w-full px-3 py-2.5 bg-white border border-gray-300 rounded-lg text-[13px] text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-green-500 focus:ring-1 focus:ring-green-500"
@@ -137,8 +136,8 @@ export default function PasswordChangeSettings({ userId, role }: PasswordChangeS
             <div>
               <label className="block text-[13px] font-bold text-gray-900 mb-1.5">Yeni şifre</label>
               <div className="relative">
-                <input 
-                  type={showNew ? "text" : "password"} 
+                <input
+                  type={showNew ? "text" : "password"}
                   placeholder="Şifre gir"
                   required
                   minLength={6}
@@ -154,8 +153,8 @@ export default function PasswordChangeSettings({ userId, role }: PasswordChangeS
             <div>
               <label className="block text-[13px] font-bold text-gray-900 mb-1.5">Yeni şifreni tekrarla</label>
               <div className="relative">
-                <input 
-                  type={showConfirm ? "text" : "password"} 
+                <input
+                  type={showConfirm ? "text" : "password"}
                   placeholder="Yeni şifreni tekrarla"
                   required
                   minLength={6}
@@ -169,8 +168,8 @@ export default function PasswordChangeSettings({ userId, role }: PasswordChangeS
           </div>
 
           <div className="pt-8">
-            <button 
-              type="submit" 
+            <button
+              type="submit"
               disabled={loading}
               className="w-full py-3 bg-[#22c55e] hover:bg-[#16a34a] text-white font-bold text-[13px] rounded-lg transition-colors disabled:opacity-70"
             >

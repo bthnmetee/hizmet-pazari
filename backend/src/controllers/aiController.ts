@@ -239,7 +239,7 @@ async function callAI(prompt: string): Promise<string> {
       body: JSON.stringify({ model: 'claude-sonnet-4-20250514', max_tokens: 1000, messages: [{ role: 'user', content: prompt }] })
     });
     if (!response.ok) return '';
-    const data = await response.json();
+    const data: any = await response.json();
     return data.content?.[0]?.text || '';
   } catch { return ''; }
 }

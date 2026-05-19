@@ -15,7 +15,7 @@ export const getAdminStats = async (req: Request, res: Response) => {
     const totalTransactions = await Transaction.countDocuments();
     
     // Toplam İşlem Hacmi Hesaplama
-    const transactions = await Transaction.find({ status: 'completed' });
+    const transactions = await Transaction.find({ type: 'credit_purchase' });
     const totalVolume = transactions.reduce((acc, curr) => acc + (curr.amount || 0), 0);
 
     res.status(200).json({
@@ -138,7 +138,7 @@ export const deleteServiceRequest = async (req: Request, res: Response) => {
     await ServiceRequest.findByIdAndDelete(id);
     // Also consider deleting related proposals if needed. For now, just delete the request.
     const Proposal = (await import('../models/Proposal')).default;
-    await Proposal.deleteMany({ serviceRequestId: id });
+    await Proposal.deleteMany({ serviceRequest: id });
 
     res.status(200).json({ message: 'Hizmet talebi başarıyla silindi.' });
   } catch (error: any) {
