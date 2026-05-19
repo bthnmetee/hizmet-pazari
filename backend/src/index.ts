@@ -141,7 +141,7 @@ mongoose.connect(MONGO_URI)
     console.log('✅ MongoDB Bağlantısı Başarılı');
     const server = app.listen(PORT, () => {
       console.log(`✅ Server ${PORT} portunda çalışıyor`);
-      console.log(`   CORS Origin: ${CORS_ORIGIN}`);
+      console.log(`   CORS Origins: ${allowedOrigins.join(', ')}`);
       console.log(`   NODE_ENV: ${process.env.NODE_ENV || 'development'}`);
     });
 
