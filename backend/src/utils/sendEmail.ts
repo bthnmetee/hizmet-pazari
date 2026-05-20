@@ -6,6 +6,14 @@ interface EmailOptions {
   message: string;
 }
 
+const redactEmail = (email?: string) => {
+  if (!email || !email.includes('@')) return email || 'not-set';
+
+  const [localPart, domain] = email.split('@');
+  const visiblePrefix = localPart.slice(0, 2);
+  return `${visiblePrefix}${localPart.length > 2 ? '***' : '*'}@${domain}`;
+};
+
 const escapeHtml = (value: string) =>
   value
     .replace(/&/g, '&amp;')
@@ -33,32 +41,71 @@ export const sendEmail = async (options: EmailOptions) => {
     const smtpPort = Number(process.env.BREVO_SMTP_PORT || process.env.SMTP_PORT || 2525);
     const fromEmail = process.env.BREVO_FROM_EMAIL || process.env.SMTP_FROM_EMAIL || smtpUser;
     const fromName = process.env.BREVO_FROM_NAME || process.env.SMTP_FROM_NAME || 'Hizmet Pazari';
+    const secure = smtpPort === 465;
+
+    console.log('[mail] Brevo SMTP config kontrol ediliyor', {
+      host: smtpHost,
+      port: smtpPort,
+      secure,
+      smtpUser: redactEmail(smtpUser),
+      fromEmail: redactEmail(fromEmail),
+      fromName,
+      hasPassword: Boolean(smtpPass),
+    });
 
     if (!smtpUser || !smtpPass || !fromEmail) {
+      console.error('[mail] Brevo SMTP config eksik', {
+        hasSmtpUser: Boolean(smtpUser),
+        hasSmtpPassword: Boolean(smtpPass),
+        hasFromEmail: Boolean(fromEmail),
+      });
       throw new Error('Brevo SMTP ayarlari eksik. BREVO_SMTP_USER, BREVO_SMTP_KEY ve BREVO_FROM_EMAIL tanimlanmalidir.');
     }
 
     const transporter = nodemailer.createTransport({
       host: smtpHost,
       port: smtpPort,
-      secure: smtpPort === 465,
+      secure,
       auth: {
         user: smtpUser,
         pass: smtpPass,
       },
     });
 
-    await transporter.sendMail({
+    console.log('[mail] E-posta gonderimi basladi', {
+      to: redactEmail(options.email),
+      subject: options.subject,
+      host: smtpHost,
+      port: smtpPort,
+    });
+
+    const info = await transporter.sendMail({
       from: `"${fromName}" <${fromEmail}>`,
       to: options.email,
       subject: options.subject,
       html: normalizeHtmlMessage(options.message),
     });
 
-    console.log(`E-posta Brevo ile gonderildi: ${options.email}`);
+    console.log('[mail] E-posta Brevo tarafindan kabul edildi', {
+      to: redactEmail(options.email),
+      messageId: info.messageId,
+      response: info.response,
+      accepted: info.accepted,
+      rejected: info.rejected,
+      pending: info.pending,
+    });
     return null;
   } catch (error: any) {
-    console.error('E-Posta Gonderme Hatasi:', error?.message, error?.code);
+    console.error('[mail] E-Posta Gonderme Hatasi', {
+      to: redactEmail(options.email),
+      subject: options.subject,
+      message: error?.message,
+      code: error?.code,
+      command: error?.command,
+      response: error?.response,
+      responseCode: error?.responseCode,
+      stack: process.env.NODE_ENV === 'production' ? undefined : error?.stack,
+    });
     throw new Error('E-Posta gonderilemedi.');
   }
 };
