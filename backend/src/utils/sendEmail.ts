@@ -17,7 +17,7 @@ export const sendEmail = async (options: EmailOptions) => {
     });
 
     await transporter.sendMail({
-      from: "Hizmet Pazari" <>,
+      from: `"Hizmet Pazari" <${process.env.SMTP_USER}>` ,
       to: options.email,
       subject: options.subject,
       html: options.message,
@@ -30,3 +30,4 @@ export const sendEmail = async (options: EmailOptions) => {
     throw new Error('E-Posta gonderilemedi.');
   }
 };
+
