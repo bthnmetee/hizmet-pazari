@@ -105,9 +105,10 @@ app.use('/api/phone', phoneRoutes);
 app.use('/api/profile', profileRoutes);
 
 // ═══════════ FRONTEND STATİK DOSYA SUNUMU (Tek Sunucu Deploy) ═══════════
-// Eğer frontend ayrı bir platformda (Vercel/Netlify) deploy ediliyorsa bu blok devre dışı bırakılabilir
+// Frontend ayrı platformda (Vercel) deploy ediliyorsa bu blok otomatik olarak atlanır
 const frontendDistPath = path.join(__dirname, '..', '..', 'frontend', 'dist');
-if (isProduction) {
+const fs = require('fs');
+if (isProduction && fs.existsSync(frontendDistPath)) {
   app.use(express.static(frontendDistPath));
   // SPA fallback — Tanımsız rotaları index.html'e yönlendir
   app.get('*path', (req, res, next) => {
@@ -115,6 +116,8 @@ if (isProduction) {
     if (req.path.startsWith('/api')) return next();
     res.sendFile(path.join(frontendDistPath, 'index.html'));
   });
+} else if (isProduction) {
+  console.log('ℹ️  Frontend dist klasörü bulunamadı. Frontend ayrı platformda deploy edilmiş olabilir.');
 }
 
 // ═══════════ GLOBAL HATA YÖNETİMİ ═══════════
