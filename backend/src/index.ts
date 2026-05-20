@@ -52,7 +52,9 @@ app.use(helmet({
 
 const allowedOrigins = [
   'http://localhost:5173',
+  'http://localhost:5000',
   'https://hizmet-pazari-projesi.vercel.app',
+  'https://hizmet-pazari-backend.onrender.com',
   process.env.CORS_ORIGIN,
 ].filter(Boolean);
 app.use(cors({ origin: allowedOrigins, credentials: true }));
