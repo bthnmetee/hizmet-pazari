@@ -1,34 +1,78 @@
+import nodemailer from 'nodemailer';
+
 interface EmailOptions {
   email: string;
   subject: string;
   message: string;
 }
 
+const isProduction = process.env.NODE_ENV === 'production';
+
 export const sendEmail = async (options: EmailOptions) => {
   try {
-    const response = await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${process.env.RESEND_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        from: 'Hizmet Pazarƒ± <onboarding@resend.dev>',
-        to: options.email,
-        subject: options.subject,
-        html: options.message,
-      }),
-    });
+    let transporter;
+    let isTestMode = false;
 
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(`Resend API hatasƒ±: ${JSON.stringify(error)}`);
+    if (process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS) {
+      // ‘£‡ Ger+ek SMTP ba¶˛lant¶-s¶-
+      transporter = nodemailer.createTransport({
+        host: process.env.SMTP_HOST,
+        port: Number(process.env.SMTP_PORT) || 587,
+        secure: process.env.SMTP_PORT === '465', // true for 465, false for other ports
+        auth: {
+          user: process.env.SMTP_USER,
+          pass: process.env.SMTP_PASS,
+        },
+      });
+    } else if (isProduction) {
+      // ≠˛ˆ+ Production'da SMTP bilgileri ZORUNLU
+      console.error('‘ÿÓ FATAL: SMTP ayarlar¶- production modunda zorunludur!');
+      console.error('   .env dosyas¶-na SMTP_HOST, SMTP_USER ve SMTP_PASS ekleyin.');
+      throw new Error('SMTP ayarlar¶- eksik. E-posta g+¬nderilemez.');
+    } else {
+      // ‘‹·¥©≈ Development'da Ethereal test hesab¶- kullan
+      console.warn("‘‹·¥©≈ SMTP bilgileri eksik! Ethereal Email (test modu) kullan¶-l¶-yor.");
+      isTestMode = true;
+      const testAccount = await nodemailer.createTestAccount();
+      transporter = nodemailer.createTransport({
+        host: "smtp.ethereal.email",
+        port: 587,
+        secure: false,
+        auth: {
+          user: testAccount.user,
+          pass: testAccount.pass,
+        },
+      });
     }
 
-    console.log(`‚úÖ E-posta g√∂nderildi: ${options.email}`);
+    const mailOptions = {
+      from: process.env.SMTP_FROM || '"Hizmet Pazar¶-" <noreply@hizmet-pazari.net>',
+      to: options.email,
+      subject: options.subject,
+      html: options.message,
+    };
+
+    const info = await transporter.sendMail(mailOptions);
+
+    // Development'da detayl¶- log, production'da minimal log
+    if (!isProduction) {
+      console.log("-------------------------------------------------");
+      console.log(`≠˛ÙÆ ALICI: ${options.email}`);
+      console.log(`≠˛ÙÓ KONU: ${options.subject}`);
+      console.log("‘£‡ MESAJ G+˚NDER¶-LD¶-.");
+      let testUrl = null;
+      if (isTestMode) {
+        testUrl = nodemailer.getTestMessageUrl(info);
+        console.log(`≠˛ˆ˘ E-POSTA +˚N¶-ZLEME L¶-NK¶-: ${testUrl}`);
+      }
+      console.log("-------------------------------------------------");
+      
+      return testUrl;
+    }
+
     return null;
   } catch (error) {
-    console.error('‚ùå E-Posta G√∂nderme Hatasƒ±:', error);
-    throw new Error('E-Posta g√∂nderilemedi.');
+    console.error("‘ÿÓ E-Posta G+¬nderme Hatas¶-:", isProduction ? (error as Error).message : error);
+    throw new Error('E-Posta g+¬nderilemedi.');
   }
 };
