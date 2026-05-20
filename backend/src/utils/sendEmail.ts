@@ -1,4 +1,5 @@
 import nodemailer from 'nodemailer';
+import axios from 'axios';
 
 interface EmailOptions {
   email: string;
@@ -34,13 +35,70 @@ const normalizeHtmlMessage = (message: string) => {
 };
 
 export const sendEmail = async (options: EmailOptions) => {
+  const smtpUser = process.env.BREVO_SMTP_USER || process.env.SMTP_USER;
+  const smtpPass = process.env.BREVO_SMTP_KEY || process.env.BREVO_SMTP_PASS || process.env.SMTP_PASS;
+  const smtpHost = process.env.BREVO_SMTP_HOST || process.env.SMTP_HOST || 'smtp-relay.brevo.com';
+  const smtpPort = Number(process.env.BREVO_SMTP_PORT || process.env.SMTP_PORT || 2525);
+  const brevoApiKey = process.env.BREVO_API_KEY;
+  const fromEmail = process.env.BREVO_FROM_EMAIL || process.env.SMTP_FROM_EMAIL || smtpUser;
+  const fromName = process.env.BREVO_FROM_NAME || process.env.SMTP_FROM_NAME || 'Hizmet Pazari';
+  const htmlContent = normalizeHtmlMessage(options.message);
+
   try {
-    const smtpUser = process.env.BREVO_SMTP_USER || process.env.SMTP_USER;
-    const smtpPass = process.env.BREVO_SMTP_KEY || process.env.BREVO_SMTP_PASS || process.env.SMTP_PASS;
-    const smtpHost = process.env.BREVO_SMTP_HOST || process.env.SMTP_HOST || 'smtp-relay.brevo.com';
-    const smtpPort = Number(process.env.BREVO_SMTP_PORT || process.env.SMTP_PORT || 2525);
-    const fromEmail = process.env.BREVO_FROM_EMAIL || process.env.SMTP_FROM_EMAIL || smtpUser;
-    const fromName = process.env.BREVO_FROM_NAME || process.env.SMTP_FROM_NAME || 'Hizmet Pazari';
+    if (brevoApiKey) {
+      console.log('[mail] Brevo API config kontrol ediliyor', {
+        endpoint: 'https://api.brevo.com/v3/smtp/email',
+        fromEmail: redactEmail(fromEmail),
+        fromName,
+        hasApiKey: true,
+      });
+
+      if (!fromEmail) {
+        console.error('[mail] Brevo API config eksik', {
+          hasFromEmail: Boolean(fromEmail),
+        });
+        throw new Error('Brevo API ayarlari eksik. BREVO_FROM_EMAIL tanimlanmalidir.');
+      }
+
+      console.log('[mail] Brevo API e-posta gonderimi basladi', {
+        to: redactEmail(options.email),
+        subject: options.subject,
+      });
+
+      const response = await axios.post(
+        'https://api.brevo.com/v3/smtp/email',
+        {
+          sender: {
+            name: fromName,
+            email: fromEmail,
+          },
+          to: [
+            {
+              email: options.email,
+            },
+          ],
+          subject: options.subject,
+          htmlContent,
+        },
+        {
+          headers: {
+            accept: 'application/json',
+            'api-key': brevoApiKey,
+            'content-type': 'application/json',
+          },
+          timeout: 15000,
+        }
+      );
+
+      console.log('[mail] E-posta Brevo API tarafindan kabul edildi', {
+        to: redactEmail(options.email),
+        status: response.status,
+        messageId: response.data?.messageId,
+      });
+
+      return null;
+    }
+
     const secure = smtpPort === 465;
 
     console.log('[mail] Brevo SMTP config kontrol ediliyor', {
@@ -51,6 +109,7 @@ export const sendEmail = async (options: EmailOptions) => {
       fromEmail: redactEmail(fromEmail),
       fromName,
       hasPassword: Boolean(smtpPass),
+      hasApiKey: false,
     });
 
     if (!smtpUser || !smtpPass || !fromEmail) {
@@ -83,7 +142,7 @@ export const sendEmail = async (options: EmailOptions) => {
       from: `"${fromName}" <${fromEmail}>`,
       to: options.email,
       subject: options.subject,
-      html: normalizeHtmlMessage(options.message),
+      html: htmlContent,
     });
 
     console.log('[mail] E-posta Brevo tarafindan kabul edildi', {
@@ -104,6 +163,8 @@ export const sendEmail = async (options: EmailOptions) => {
       command: error?.command,
       response: error?.response,
       responseCode: error?.responseCode,
+      httpStatus: error?.response?.status,
+      httpData: error?.response?.data,
       stack: process.env.NODE_ENV === 'production' ? undefined : error?.stack,
     });
     throw new Error('E-Posta gonderilemedi.');
