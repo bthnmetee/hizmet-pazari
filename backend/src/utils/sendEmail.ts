@@ -1,5 +1,4 @@
 import nodemailer from 'nodemailer';
-import axios from 'axios';
 
 interface EmailOptions {
   email: string;
@@ -34,82 +33,44 @@ const normalizeHtmlMessage = (message: string) => {
   return escapeHtml(trimmedMessage).replace(/\n/g, '<br>');
 };
 
+const getSafeErrorDetails = (error: any) => {
+  return {
+    message: error?.message,
+    code: error?.code,
+    command: error?.command,
+    responseCode: error?.responseCode,
+    smtpResponse: typeof error?.response === 'string' ? error.response : undefined,
+    stack: process.env.NODE_ENV === 'production' ? undefined : error?.stack,
+  };
+};
+
 export const sendEmail = async (options: EmailOptions) => {
-  const smtpUser = process.env.BREVO_SMTP_USER || process.env.SMTP_USER;
-  const smtpPass = process.env.BREVO_SMTP_KEY || process.env.BREVO_SMTP_PASS || process.env.SMTP_PASS;
-  const smtpHost = process.env.BREVO_SMTP_HOST || process.env.SMTP_HOST || 'smtp-relay.brevo.com';
-  const smtpPort = Number(process.env.BREVO_SMTP_PORT || process.env.SMTP_PORT || 2525);
-  const brevoApiKey = process.env.BREVO_API_KEY;
-  const fromEmail = process.env.BREVO_FROM_EMAIL || process.env.SMTP_FROM_EMAIL || smtpUser;
-  const fromName = process.env.BREVO_FROM_NAME || process.env.SMTP_FROM_NAME || 'Hizmet Pazari';
+  const smtpHost = process.env.SMTP_HOST || process.env.BREVO_SMTP_HOST || 'smtp-relay.brevo.com';
+  const smtpPort = Number(process.env.SMTP_PORT || process.env.BREVO_SMTP_PORT || 2525);
+  const smtpSecure = (process.env.SMTP_SECURE || '').toLowerCase() === 'true';
+  const smtpUser = process.env.SMTP_USER || process.env.BREVO_SMTP_USER;
+  const smtpPass =
+    process.env.SMTP_PASS ||
+    process.env.SMTP_KEY ||
+    process.env.BREVO_SMTP_KEY ||
+    process.env.BREVO_SMTP_PASS;
+  const fromEmail =
+    process.env.MAIL_FROM_EMAIL ||
+    process.env.BREVO_FROM_EMAIL ||
+    process.env.SMTP_FROM_EMAIL ||
+    smtpUser;
+  const fromName = process.env.MAIL_FROM_NAME || process.env.BREVO_FROM_NAME || process.env.SMTP_FROM_NAME || 'Hizmet Pazari';
   const htmlContent = normalizeHtmlMessage(options.message);
 
   try {
-    if (brevoApiKey) {
-      console.log('[mail] Brevo API config kontrol ediliyor', {
-        endpoint: 'https://api.brevo.com/v3/smtp/email',
-        fromEmail: redactEmail(fromEmail),
-        fromName,
-        hasApiKey: true,
-      });
-
-      if (!fromEmail) {
-        console.error('[mail] Brevo API config eksik', {
-          hasFromEmail: Boolean(fromEmail),
-        });
-        throw new Error('Brevo API ayarlari eksik. BREVO_FROM_EMAIL tanimlanmalidir.');
-      }
-
-      console.log('[mail] Brevo API e-posta gonderimi basladi', {
-        to: redactEmail(options.email),
-        subject: options.subject,
-      });
-
-      const response = await axios.post(
-        'https://api.brevo.com/v3/smtp/email',
-        {
-          sender: {
-            name: fromName,
-            email: fromEmail,
-          },
-          to: [
-            {
-              email: options.email,
-            },
-          ],
-          subject: options.subject,
-          htmlContent,
-        },
-        {
-          headers: {
-            accept: 'application/json',
-            'api-key': brevoApiKey,
-            'content-type': 'application/json',
-          },
-          timeout: 15000,
-        }
-      );
-
-      console.log('[mail] E-posta Brevo API tarafindan kabul edildi', {
-        to: redactEmail(options.email),
-        status: response.status,
-        messageId: response.data?.messageId,
-      });
-
-      return null;
-    }
-
-    const secure = smtpPort === 465;
-
     console.log('[mail] Brevo SMTP config kontrol ediliyor', {
       host: smtpHost,
       port: smtpPort,
-      secure,
+      secure: smtpSecure,
       smtpUser: redactEmail(smtpUser),
       fromEmail: redactEmail(fromEmail),
       fromName,
       hasPassword: Boolean(smtpPass),
-      hasApiKey: false,
     });
 
     if (!smtpUser || !smtpPass || !fromEmail) {
@@ -118,17 +79,27 @@ export const sendEmail = async (options: EmailOptions) => {
         hasSmtpPassword: Boolean(smtpPass),
         hasFromEmail: Boolean(fromEmail),
       });
-      throw new Error('Brevo SMTP ayarlari eksik. BREVO_SMTP_USER, BREVO_SMTP_KEY ve BREVO_FROM_EMAIL tanimlanmalidir.');
+      throw new Error('SMTP ayarlari eksik. SMTP_USER, SMTP_PASS veya SMTP_KEY ve MAIL_FROM_EMAIL tanimlanmalidir.');
     }
 
     const transporter = nodemailer.createTransport({
       host: smtpHost,
       port: smtpPort,
-      secure,
+      secure: smtpSecure,
       auth: {
         user: smtpUser,
         pass: smtpPass,
       },
+    });
+
+    console.log('[mail] Brevo SMTP transporter verify basladi', {
+      host: smtpHost,
+      port: smtpPort,
+    });
+    await transporter.verify();
+    console.log('[mail] Brevo SMTP transporter verify basarili', {
+      host: smtpHost,
+      port: smtpPort,
     });
 
     console.log('[mail] E-posta gonderimi basladi', {
@@ -158,14 +129,7 @@ export const sendEmail = async (options: EmailOptions) => {
     console.error('[mail] E-Posta Gonderme Hatasi', {
       to: redactEmail(options.email),
       subject: options.subject,
-      message: error?.message,
-      code: error?.code,
-      command: error?.command,
-      response: error?.response,
-      responseCode: error?.responseCode,
-      httpStatus: error?.response?.status,
-      httpData: error?.response?.data,
-      stack: process.env.NODE_ENV === 'production' ? undefined : error?.stack,
+      ...getSafeErrorDetails(error),
     });
     throw new Error('E-Posta gonderilemedi.');
   }
