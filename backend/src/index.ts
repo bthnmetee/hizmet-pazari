@@ -50,14 +50,30 @@ app.use(helmet({
   contentSecurityPolicy: isProduction ? undefined : false, // Dev'de CSP devre dışı
 }));
 
+const configuredOrigins = (process.env.CORS_ORIGIN || '')
+  .split(',')
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+
 const allowedOrigins = [
   'http://localhost:5173',
   'http://localhost:5000',
+  'https://hizmet-pazari.net',
+  'https://www.hizmet-pazari.net',
   'https://hizmet-pazari-projesi.vercel.app',
   'https://hizmet-pazari-backend.onrender.com',
-  process.env.CORS_ORIGIN,
-].filter(Boolean);
-app.use(cors({ origin: allowedOrigins, credentials: true }));
+  ...configuredOrigins,
+];
+app.use(cors({
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+
+    return callback(new Error(`CORS origin izinli degil: ${origin}`));
+  },
+  credentials: true,
+}));
 
 // ✅ Body Size Limiti — büyük payload'ları engelle
 app.use(express.json({ limit: '10kb' }));
