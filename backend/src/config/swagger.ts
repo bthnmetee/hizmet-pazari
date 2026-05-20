@@ -14,12 +14,16 @@ const options: swaggerJsdoc.Options = {
     },
     servers: [
       {
-        url: 'http://localhost:5000',
-        description: 'Lokal gelistirme sunucusu',
+        url: '/',
+        description: 'Varsayılan (Mevcut Sunucu)',
       },
       {
         url: 'https://hizmet-pazari-backend.onrender.com',
         description: 'Production sunucusu',
+      },
+      {
+        url: 'http://localhost:5000',
+        description: 'Lokal gelistirme sunucusu',
       },
     ],
     components: {
