@@ -59,9 +59,12 @@ export default function ProviderRegister() {
     setOtpLoading(true);
     setError('');
     try {
-      await axiosInstance.post('/phone/send-otp', { email });
+      const normalizedEmail = email.trim().toLowerCase();
+      const response = await axiosInstance.post('/phone/send-otp', { email: normalizedEmail });
       setOtpSent(true);
-      setOtpCountdown(120);
+      setOtpCode('');
+      setEmailVerified(false);
+      setOtpCountdown(response.data?.expiresIn || 300);
       const timer = setInterval(() => {
         setOtpCountdown(prev => {
           if (prev <= 1) { clearInterval(timer); return 0; }
@@ -83,7 +86,10 @@ export default function ProviderRegister() {
     setOtpLoading(true);
     setError('');
     try {
-      const res = await axiosInstance.post('/phone/verify-otp', { email, code: otpCode });
+      const res = await axiosInstance.post('/phone/verify-otp', {
+        email: email.trim().toLowerCase(),
+        code: otpCode.trim()
+      });
       if (res.data.verified) setEmailVerified(true);
     } catch (err: any) {
       setError(err.response?.data?.message || 'Doğrulama başarısız.');
@@ -163,7 +169,13 @@ export default function ProviderRegister() {
               </div>
               <div>
                 <label className="block text-xs font-black text-navy-300 uppercase tracking-widest mb-2">E-posta</label>
-                <input type="email" required value={email} onChange={e => setEmail(e.target.value)} placeholder="ornek@mail.com" className="w-full px-4 py-3.5 bg-white/5 border border-white/10 rounded-xl focus:ring-2 focus:ring-navy-500/30 focus:border-gold-500 outline-none text-white placeholder:text-navy-500 font-medium" />
+                <input type="email" required value={email} onChange={e => {
+                  setEmail(e.target.value);
+                  setOtpSent(false);
+                  setOtpCode('');
+                  setEmailVerified(false);
+                  setOtpCountdown(0);
+                }} placeholder="ornek@mail.com" className="w-full px-4 py-3.5 bg-white/5 border border-white/10 rounded-xl focus:ring-2 focus:ring-navy-500/30 focus:border-gold-500 outline-none text-white placeholder:text-navy-500 font-medium" />
               </div>
               <div>
                 <label className="block text-xs font-black text-navy-300 uppercase tracking-widest mb-2">Telefon</label>

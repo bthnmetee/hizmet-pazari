@@ -3,6 +3,12 @@ import { sendEmail } from '../utils/sendEmail';
 
 // Geçici OTP deposu (Uygulama büyüdüğünde prodüksiyonda Redis kullanılması önerilir)
 const otpStore: Map<string, { code: string; expiresAt: number }> = new Map();
+const OTP_EXPIRES_IN_SECONDS = 5 * 60;
+
+const redactEmail = (email: string) => {
+  const [localPart, domain] = email.split('@');
+  return `${localPart.slice(0, 2)}***@${domain}`;
+};
 
 // 6 haneli random OTP oluştur
 const generateOTP = (): string => {
@@ -24,7 +30,12 @@ export const sendOTP = async (req: Request, res: Response) => {
     // 5 dakika geçerlilik süresi
     otpStore.set(normalizedEmail, {
       code: otp,
-      expiresAt: Date.now() + 5 * 60 * 1000
+      expiresAt: Date.now() + OTP_EXPIRES_IN_SECONDS * 1000
+    });
+
+    console.log('[otp] Dogrulama kodu olusturuldu', {
+      email: redactEmail(normalizedEmail),
+      expiresIn: OTP_EXPIRES_IN_SECONDS,
     });
 
     await sendEmail({
@@ -40,7 +51,7 @@ export const sendOTP = async (req: Request, res: Response) => {
 
     return res.json({
       message: 'Doğrulama kodu e-posta adresinize gönderildi.',
-      expiresIn: 300,
+      expiresIn: OTP_EXPIRES_IN_SECONDS,
       smsProvider: 'email'
     });
 
@@ -60,23 +71,38 @@ export const verifyOTP = async (req: Request, res: Response) => {
     }
 
     const normalizedEmail = email.trim().toLowerCase();
+    const normalizedCode = String(code).trim();
     const stored = otpStore.get(normalizedEmail);
 
     if (!stored) {
+      console.warn('[otp] Dogrulama kodu bulunamadi', {
+        email: redactEmail(normalizedEmail),
+      });
       return res.status(400).json({ message: 'Doğrulama kodu bulunamadı. Lütfen yeni kod talep edin.' });
     }
 
     if (Date.now() > stored.expiresAt) {
       otpStore.delete(normalizedEmail);
+      console.warn('[otp] Dogrulama kodunun suresi doldu', {
+        email: redactEmail(normalizedEmail),
+      });
       return res.status(400).json({ message: 'Doğrulama kodunun süresi dolmuş. Lütfen yeni kod talep edin.' });
     }
 
-    if (stored.code !== code) {
+    if (stored.code !== normalizedCode) {
+      console.warn('[otp] Yanlis dogrulama kodu', {
+        email: redactEmail(normalizedEmail),
+        receivedLength: normalizedCode.length,
+      });
       return res.status(400).json({ message: 'Yanlış doğrulama kodu.' });
     }
 
     // Başarılı - kodu temizle
     otpStore.delete(normalizedEmail);
+
+    console.log('[otp] E-posta dogrulandi', {
+      email: redactEmail(normalizedEmail),
+    });
 
     res.json({ message: 'E-posta adresi doğrulandı.', verified: true });
   } catch (error: any) {

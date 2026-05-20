@@ -9,6 +9,11 @@ const getPrimaryServiceCategory = (service?: string): string => {
   return service.includes('nakliyat') ? 'nakliyat' : service;
 };
 
+const buildResetPasswordLink = (frontendUrl: string, token: string) => {
+  const baseUrl = frontendUrl.replace(/\/+$/, '');
+  return `${baseUrl}/reset-password/${encodeURIComponent(token)}`;
+};
+
 // 🚀 MÜŞTERİ KAYIT (Sadece Metin Verileri)
 export const registerCustomer = async (req: Request, res: Response) => {
   try {
@@ -212,7 +217,15 @@ export const forgotPassword = async (req: Request, res: Response) => {
     );
 
     const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173';
-    const resetLink = `${FRONTEND_URL}/reset-password/${resetToken}`;
+    const resetLink = buildResetPasswordLink(FRONTEND_URL, resetToken);
+
+    console.log('[auth] Sifre sifirlama linki olusturuldu', {
+      userId: String(user._id),
+      userType,
+      email: cleanEmail,
+      frontendUrl: FRONTEND_URL,
+      tokenLength: resetToken.length,
+    });
 
     // Mail Gönderimi
     const { sendEmail } = await import('../utils/sendEmail');
@@ -244,30 +257,53 @@ export const forgotPassword = async (req: Request, res: Response) => {
 // 🔑 ŞİFRE SIFIRLAMA
 export const resetPassword = async (req: Request, res: Response) => {
   try {
-    const { token } = req.params;
+    const rawToken = req.params.token;
     const { newPassword } = req.body;
 
     if (!newPassword || newPassword.length < 6) {
       return res.status(400).json({ message: 'Şifre en az 6 karakter olmalıdır.' });
     }
 
+    if (!rawToken) {
+      return res.status(400).json({ message: 'Şifre sıfırlama bağlantısı eksik.' });
+    }
+
+    const token = decodeURIComponent(String(rawToken)).trim();
+
     // Token doğrula
     const decoded: any = jwt.verify(token as string, process.env.JWT_SECRET!);
+
+    console.log('[auth] Sifre sifirlama token dogrulandi', {
+      userId: decoded.id,
+      userType: decoded.type,
+    });
     
     const hashedPassword = await bcrypt.hash(newPassword, 10);
 
     if (decoded.type === 'customer') {
-      await Customer.findByIdAndUpdate(decoded.id, { password: hashedPassword });
+      const updatedCustomer = await Customer.findByIdAndUpdate(decoded.id, { password: hashedPassword });
+      if (!updatedCustomer) {
+        return res.status(404).json({ message: 'Kullanıcı bulunamadı.' });
+      }
+    } else if (decoded.type === 'provider') {
+      const updatedProvider = await Provider.findByIdAndUpdate(decoded.id, { password: hashedPassword });
+      if (!updatedProvider) {
+        return res.status(404).json({ message: 'Kullanıcı bulunamadı.' });
+      }
     } else {
-      await Provider.findByIdAndUpdate(decoded.id, { password: hashedPassword });
+      return res.status(400).json({ message: 'Geçersiz şifre sıfırlama bağlantısı.' });
     }
 
     res.json({ message: 'Şifreniz başarıyla güncellendi.' });
   } catch (error: any) {
     if (error.name === 'TokenExpiredError') {
+      console.error('[auth] Sifre sifirlama token suresi doldu');
       return res.status(400).json({ message: 'Şifre sıfırlama bağlantısının süresi dolmuş.' });
     }
     if (error.name === 'JsonWebTokenError') {
+      console.error('[auth] Sifre sifirlama token gecersiz', {
+        reason: error.message,
+      });
       return res.status(400).json({ message: 'Geçersiz şifre sıfırlama bağlantısı.' });
     }
     console.error("Reset Password Hatası:", error);

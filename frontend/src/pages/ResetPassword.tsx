@@ -28,7 +28,11 @@ export default function ResetPassword() {
     setLoading(true);
 
     try {
-      await axiosInstance.post(`/auth/reset-password/${token}`, { newPassword });
+      if (!token) {
+        throw new Error('Şifre sıfırlama bağlantısı eksik.');
+      }
+
+      await axiosInstance.post(`/auth/reset-password/${encodeURIComponent(token)}`, { newPassword });
 
       setMessage('Şifreniz başarıyla güncellendi! Giriş sayfasına yönlendiriliyorsunuz...');
       setTimeout(() => navigate('/login'), 3000);

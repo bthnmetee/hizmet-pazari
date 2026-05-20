@@ -48,6 +48,13 @@ export default function Register() {
   const [otpCountdown, setOtpCountdown] = useState(0);
 
   const handleChange = (e: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    if (e.target.name === 'email' && e.target.value !== formData.email) {
+      setOtpSent(false);
+      setOtpCode('');
+      setEmailVerified(false);
+      setOtpCountdown(0);
+    }
+
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
@@ -65,9 +72,12 @@ export default function Register() {
     setOtpLoading(true);
     setError('');
     try {
-      await axiosInstance.post('/phone/send-otp', { email: formData.email });
+      const normalizedEmail = formData.email.trim().toLowerCase();
+      const response = await axiosInstance.post('/phone/send-otp', { email: normalizedEmail });
       setOtpSent(true);
-      setOtpCountdown(120);
+      setOtpCode('');
+      setEmailVerified(false);
+      setOtpCountdown(response.data?.expiresIn || 300);
       const timer = setInterval(() => {
         setOtpCountdown(prev => {
           if (prev <= 1) { clearInterval(timer); return 0; }
@@ -90,8 +100,8 @@ export default function Register() {
     setError('');
     try {
       const res = await axiosInstance.post('/phone/verify-otp', {
-        email: formData.email,
-        code: otpCode
+        email: formData.email.trim().toLowerCase(),
+        code: otpCode.trim()
       });
       if (res.data.verified) {
         setEmailVerified(true);
