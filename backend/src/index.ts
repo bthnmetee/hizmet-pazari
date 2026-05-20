@@ -7,6 +7,7 @@ import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import swaggerUi from 'swagger-ui-express';
 import { swaggerSpec } from './config/swagger';
+import { verifyEmailTransport } from './utils/sendEmail';
 
 // Rotaların İçe Aktarılması
 import authRoutes from './routes/authRoutes';
@@ -36,6 +37,8 @@ if (isProduction && !process.env.MONGO_URI) {
   console.error('❌ FATAL: MONGO_URI ortam değişkeni production modunda zorunludur!');
   process.exit(1);
 }
+
+void verifyEmailTransport();
 
 const app = express();
 

@@ -44,7 +44,7 @@ const getSafeErrorDetails = (error: any) => {
   };
 };
 
-export const sendEmail = async (options: EmailOptions) => {
+const getMailConfig = () => {
   const smtpHost = process.env.SMTP_HOST || process.env.BREVO_SMTP_HOST || 'smtp-relay.brevo.com';
   const smtpPort = Number(process.env.SMTP_PORT || process.env.BREVO_SMTP_PORT || 2525);
   const smtpSecure = (process.env.SMTP_SECURE || '').toLowerCase() === 'true';
@@ -60,57 +60,99 @@ export const sendEmail = async (options: EmailOptions) => {
     process.env.SMTP_FROM_EMAIL ||
     smtpUser;
   const fromName = process.env.MAIL_FROM_NAME || process.env.BREVO_FROM_NAME || process.env.SMTP_FROM_NAME || 'Hizmet Pazari';
+
+  return {
+    smtpHost,
+    smtpPort,
+    smtpSecure,
+    smtpUser,
+    smtpPass,
+    fromEmail,
+    fromName,
+  };
+};
+
+const logMailConfig = (prefix: string, config: ReturnType<typeof getMailConfig>) => {
+  console.log(prefix, {
+    host: config.smtpHost,
+    port: config.smtpPort,
+    secure: config.smtpSecure,
+    smtpUser: redactEmail(config.smtpUser),
+    fromEmail: redactEmail(config.fromEmail),
+    fromName: config.fromName,
+    hasPassword: Boolean(config.smtpPass),
+  });
+};
+
+const createMailTransporter = (config: ReturnType<typeof getMailConfig>) => {
+  if (!config.smtpUser || !config.smtpPass || !config.fromEmail) {
+    console.error('[mail] Brevo SMTP config eksik', {
+      hasSmtpUser: Boolean(config.smtpUser),
+      hasSmtpPassword: Boolean(config.smtpPass),
+      hasFromEmail: Boolean(config.fromEmail),
+    });
+    throw new Error('SMTP ayarlari eksik. SMTP_USER, SMTP_PASS veya SMTP_KEY ve MAIL_FROM_EMAIL tanimlanmalidir.');
+  }
+
+  return nodemailer.createTransport({
+    host: config.smtpHost,
+    port: config.smtpPort,
+    secure: config.smtpSecure,
+    auth: {
+      user: config.smtpUser,
+      pass: config.smtpPass,
+    },
+  });
+};
+
+export const verifyEmailTransport = async () => {
+  const config = getMailConfig();
+
+  try {
+    logMailConfig('[mail] Startup SMTP config kontrol ediliyor', config);
+    const transporter = createMailTransporter(config);
+
+    console.log('[mail] Startup SMTP transporter verify basladi', {
+      host: config.smtpHost,
+      port: config.smtpPort,
+    });
+    await transporter.verify();
+    console.log('[mail] Startup SMTP transporter verify basarili', {
+      host: config.smtpHost,
+      port: config.smtpPort,
+    });
+  } catch (error: any) {
+    console.error('[mail] Startup SMTP transporter verify hatasi', getSafeErrorDetails(error));
+  }
+};
+
+export const sendEmail = async (options: EmailOptions) => {
+  const config = getMailConfig();
   const htmlContent = normalizeHtmlMessage(options.message);
 
   try {
-    console.log('[mail] Brevo SMTP config kontrol ediliyor', {
-      host: smtpHost,
-      port: smtpPort,
-      secure: smtpSecure,
-      smtpUser: redactEmail(smtpUser),
-      fromEmail: redactEmail(fromEmail),
-      fromName,
-      hasPassword: Boolean(smtpPass),
-    });
-
-    if (!smtpUser || !smtpPass || !fromEmail) {
-      console.error('[mail] Brevo SMTP config eksik', {
-        hasSmtpUser: Boolean(smtpUser),
-        hasSmtpPassword: Boolean(smtpPass),
-        hasFromEmail: Boolean(fromEmail),
-      });
-      throw new Error('SMTP ayarlari eksik. SMTP_USER, SMTP_PASS veya SMTP_KEY ve MAIL_FROM_EMAIL tanimlanmalidir.');
-    }
-
-    const transporter = nodemailer.createTransport({
-      host: smtpHost,
-      port: smtpPort,
-      secure: smtpSecure,
-      auth: {
-        user: smtpUser,
-        pass: smtpPass,
-      },
-    });
+    logMailConfig('[mail] Brevo SMTP config kontrol ediliyor', config);
+    const transporter = createMailTransporter(config);
 
     console.log('[mail] Brevo SMTP transporter verify basladi', {
-      host: smtpHost,
-      port: smtpPort,
+      host: config.smtpHost,
+      port: config.smtpPort,
     });
     await transporter.verify();
     console.log('[mail] Brevo SMTP transporter verify basarili', {
-      host: smtpHost,
-      port: smtpPort,
+      host: config.smtpHost,
+      port: config.smtpPort,
     });
 
     console.log('[mail] E-posta gonderimi basladi', {
       to: redactEmail(options.email),
       subject: options.subject,
-      host: smtpHost,
-      port: smtpPort,
+      host: config.smtpHost,
+      port: config.smtpPort,
     });
 
     const info = await transporter.sendMail({
-      from: `"${fromName}" <${fromEmail}>`,
+      from: `"${config.fromName}" <${config.fromEmail}>`,
       to: options.email,
       subject: options.subject,
       html: htmlContent,
