@@ -270,6 +270,11 @@ export const resetPassword = async (req: Request, res: Response) => {
 
     const token = decodeURIComponent(String(rawToken)).trim();
 
+    console.log('[auth] Sifre sifirlama istegi alindi', {
+      tokenLength: token.length,
+      hasNewPassword: Boolean(newPassword),
+    });
+
     // Token doğrula
     const decoded: any = jwt.verify(token as string, process.env.JWT_SECRET!);
 
@@ -283,16 +288,32 @@ export const resetPassword = async (req: Request, res: Response) => {
     if (decoded.type === 'customer') {
       const updatedCustomer = await Customer.findByIdAndUpdate(decoded.id, { password: hashedPassword });
       if (!updatedCustomer) {
+        console.warn('[auth] Sifre sifirlama kullanici bulunamadi', {
+          userId: decoded.id,
+          userType: decoded.type,
+        });
         return res.status(404).json({ message: 'Kullanıcı bulunamadı.' });
       }
     } else if (decoded.type === 'provider') {
       const updatedProvider = await Provider.findByIdAndUpdate(decoded.id, { password: hashedPassword });
       if (!updatedProvider) {
+        console.warn('[auth] Sifre sifirlama kullanici bulunamadi', {
+          userId: decoded.id,
+          userType: decoded.type,
+        });
         return res.status(404).json({ message: 'Kullanıcı bulunamadı.' });
       }
     } else {
+      console.warn('[auth] Sifre sifirlama token tipi gecersiz', {
+        userType: decoded.type,
+      });
       return res.status(400).json({ message: 'Geçersiz şifre sıfırlama bağlantısı.' });
     }
+
+    console.log('[auth] Sifre basariyla sifirlandi', {
+      userId: decoded.id,
+      userType: decoded.type,
+    });
 
     res.json({ message: 'Şifreniz başarıyla güncellendi.' });
   } catch (error: any) {
