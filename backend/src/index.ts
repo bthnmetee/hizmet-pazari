@@ -5,6 +5,8 @@ import dotenv from 'dotenv';
 import path from 'path';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
+import swaggerUi from 'swagger-ui-express';
+import { swaggerSpec } from './config/swagger';
 
 // Rotaların İçe Aktarılması
 import authRoutes from './routes/authRoutes';
@@ -91,6 +93,16 @@ app.use('/api/phone/send-otp', otpLimiter);
 
 // ✅ Statik dosya sunumu (uploads klasörü)
 app.use('/uploads', express.static(path.join(__dirname, '..', 'uploads')));
+
+// ═══════════ SWAGGER API DOKUMANTASYONU ═══════════
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
+  customCss: '.swagger-ui .topbar { display: none }',
+  customSiteTitle: 'Hizmet Pazari API Docs',
+}));
+app.get('/api-docs.json', (req, res) => {
+  res.setHeader('Content-Type', 'application/json');
+  res.send(swaggerSpec);
+});
 
 // ═══════════ ROTA BAĞLANTILARI ═══════════
 app.use('/api/auth', authRoutes);
