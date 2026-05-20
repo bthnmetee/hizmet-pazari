@@ -14,7 +14,7 @@ export const sendEmail = async (options: EmailOptions) => {
     let isTestMode = false;
 
     if (process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS) {
-      // Ô£à Ger+ğek SMTP ba¦şlant¦-s¦-
+      // Ô£ï¿½ Ger+ï¿½ek SMTP baï¿½ï¿½lantï¿½-sï¿½-
       transporter = nodemailer.createTransport({
         host: process.env.SMTP_HOST,
         port: Number(process.env.SMTP_PORT) || 587,
@@ -25,13 +25,13 @@ export const sendEmail = async (options: EmailOptions) => {
         },
       });
     } else if (isProduction) {
-      // ­şö+ Production'da SMTP bilgileri ZORUNLU
-      console.error('ÔØî FATAL: SMTP ayarlar¦- production modunda zorunludur!');
-      console.error('   .env dosyas¦-na SMTP_HOST, SMTP_USER ve SMTP_PASS ekleyin.');
-      throw new Error('SMTP ayarlar¦- eksik. E-posta g+Ânderilemez.');
+      // ï¿½ï¿½ï¿½+ Production'da SMTP bilgileri ZORUNLU
+      console.error('ï¿½ï¿½ï¿½ FATAL: SMTP ayarlarï¿½- production modunda zorunludur!');
+      console.error('   .env dosyasï¿½-na SMTP_HOST, SMTP_USER ve SMTP_PASS ekleyin.');
+      throw new Error('SMTP ayarlarï¿½- eksik. E-posta g+ï¿½nderilemez.');
     } else {
-      // ÔÜá´©Å Development'da Ethereal test hesab¦- kullan
-      console.warn("ÔÜá´©Å SMTP bilgileri eksik! Ethereal Email (test modu) kullan¦-l¦-yor.");
+      // ï¿½ï¿½á´©ï¿½ Development'da Ethereal test hesabï¿½- kullan
+      console.warn("ï¿½ï¿½á´©ï¿½ SMTP bilgileri eksik! Ethereal Email (test modu) kullanï¿½-lï¿½-yor.");
       isTestMode = true;
       const testAccount = await nodemailer.createTestAccount();
       transporter = nodemailer.createTransport({
@@ -46,7 +46,7 @@ export const sendEmail = async (options: EmailOptions) => {
     }
 
     const mailOptions = {
-      from: process.env.SMTP_FROM || '"Hizmet Pazar¦-" <noreply@hizmet-pazari.net>',
+      from: process.env.SMTP_FROM || '"Hizmet Pazarï¿½-" <noreply@hizmet-pazari.net>',
       to: options.email,
       subject: options.subject,
       html: options.message,
@@ -54,16 +54,16 @@ export const sendEmail = async (options: EmailOptions) => {
 
     const info = await transporter.sendMail(mailOptions);
 
-    // Development'da detayl¦- log, production'da minimal log
+    // Development'da detaylï¿½- log, production'da minimal log
     if (!isProduction) {
       console.log("-------------------------------------------------");
-      console.log(`­şô® ALICI: ${options.email}`);
-      console.log(`­şôî KONU: ${options.subject}`);
-      console.log("Ô£à MESAJ G+ûNDER¦-LD¦-.");
+      console.log(`ï¿½ï¿½ï¿½ï¿½ ALICI: ${options.email}`);
+      console.log(`ï¿½ï¿½ï¿½ï¿½ KONU: ${options.subject}`);
+      console.log("Ô£ï¿½ MESAJ G+ï¿½NDERï¿½-LDï¿½-.");
       let testUrl = null;
       if (isTestMode) {
         testUrl = nodemailer.getTestMessageUrl(info);
-        console.log(`­şöù E-POSTA +ûN¦-ZLEME L¦-NK¦-: ${testUrl}`);
+        console.log(`ï¿½ï¿½ï¿½ï¿½ E-POSTA +ï¿½Nï¿½-ZLEME Lï¿½-NKï¿½-: ${testUrl}`);
       }
       console.log("-------------------------------------------------");
       
@@ -71,8 +71,8 @@ export const sendEmail = async (options: EmailOptions) => {
     }
 
     return null;
-  } catch (error) {
-    console.error("ÔØî E-Posta G+Ânderme Hatas¦-:", isProduction ? (error as Error).message : error);
-    throw new Error('E-Posta g+Ânderilemedi.');
+  } catch (error: any) {
+    console.error('âŒ E-Posta GÃ¶nderme HatasÄ±:', JSON.stringify(error?.message), error?.code, error?.response);
+    throw new Error('E-Posta gÃ¶nderilemedi.');
   }
 };
