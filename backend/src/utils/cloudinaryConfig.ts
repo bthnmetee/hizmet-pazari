@@ -43,6 +43,21 @@ const isPdfFile = (file: Express.Multer.File) => {
   return file.mimetype === 'application/pdf' || getFileExtension(file) === 'pdf';
 };
 
+const getPublicId = (file: Express.Multer.File) => {
+  const extension = getFileExtension(file);
+  const originalName = extension
+    ? file.originalname.slice(0, -(extension.length + 1))
+    : file.originalname;
+  const sanitizedName = originalName
+    .trim()
+    .replace(/\s+/g, '-')
+    .replace(/[^a-zA-Z0-9-_]/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '');
+
+  return `${file.fieldname}-${Date.now()}-${Math.round(Math.random() * 1e9)}-${sanitizedName || 'file'}`;
+};
+
 const createUploadError = (message: string, statusCode = 400) => {
   const error = new Error(message) as Error & { statusCode?: number };
   error.statusCode = statusCode;
@@ -71,9 +86,7 @@ const storage = new CloudinaryStorage({
     return {
       folder: 'hizmet_pazari',
       resource_type: isPdfFile(file) ? 'raw' : 'image',
-      allowed_formats: ['jpg', 'jpeg', 'png', 'webp', 'pdf'],
-      public_id:
-        `${file.fieldname}-${Date.now()}-${Math.round(Math.random() * 1e9)}-${file.originalname.replace(/\s+/g, '-')}`,
+      public_id: getPublicId(file),
     };
   }) as any,
 });
@@ -96,6 +109,13 @@ export const getUploadErrorResponse = (error: any) => {
     return {
       statusCode: 500,
       message: 'Cloudinary API bilgileri gecersiz. CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY ve CLOUDINARY_API_SECRET degerlerini kontrol edin.',
+    };
+  }
+
+  if (typeof error?.message === 'string' && error.message.toLowerCase().includes('invalid signature')) {
+    return {
+      statusCode: 500,
+      message: 'Cloudinary API secret gecersiz. CLOUDINARY_API_KEY ve CLOUDINARY_API_SECRET ayni Cloudinary hesabindan olmali.',
     };
   }
 
