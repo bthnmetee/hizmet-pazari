@@ -28,6 +28,7 @@ uploads/
 .vscode/*
 !.vscode/extensions.json
 .idea
+.serena/
 *.suo
 *.ntvs*
 *.njsproj

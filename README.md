@@ -58,7 +58,7 @@ npm install
 | `CORS_ORIGIN` | Frontend URL'i (prod: `https://hizmet-pazari.net`) |
 | `FRONTEND_URL` | Frontend URL'i (şifre sıfırlama linkleri için) |
 | `CLOUDINARY_*` | Cloudinary resim yükleme bilgileri |
-| `SMTP_*` | E-posta gönderim bilgileri |
+| `SMTP_*` | Mailjet SMTP e-posta gönderim bilgileri |
 | `ANTHROPIC_API_KEY` | AI özellikleri için (opsiyonel) |
 | `ADMIN_EMAIL` | Admin yetkisi verilecek e-posta |
 

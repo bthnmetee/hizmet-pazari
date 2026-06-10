@@ -45,21 +45,26 @@ const getSafeErrorDetails = (error: any) => {
 };
 
 const getMailConfig = () => {
-  const smtpHost = process.env.SMTP_HOST || process.env.BREVO_SMTP_HOST || 'smtp-relay.brevo.com';
-  const smtpPort = Number(process.env.SMTP_PORT || process.env.BREVO_SMTP_PORT || 2525);
-  const smtpSecure = (process.env.SMTP_SECURE || '').toLowerCase() === 'true';
-  const smtpUser = process.env.SMTP_USER || process.env.BREVO_SMTP_USER;
+  const smtpHost = process.env.MAILJET_SMTP_HOST || process.env.SMTP_HOST || 'in-v3.mailjet.com';
+  const smtpPort = Number(process.env.MAILJET_SMTP_PORT || process.env.SMTP_PORT || 587);
+  const smtpSecure = (process.env.MAILJET_SMTP_SECURE || process.env.SMTP_SECURE || '').toLowerCase() === 'true';
+  const smtpUser = process.env.MAILJET_SMTP_USER || process.env.MAILJET_API_KEY || process.env.SMTP_USER;
   const smtpPass =
+    process.env.MAILJET_SMTP_PASS ||
+    process.env.MAILJET_SECRET_KEY ||
+    process.env.MAILJET_API_SECRET ||
     process.env.SMTP_PASS ||
-    process.env.SMTP_KEY ||
-    process.env.BREVO_SMTP_KEY ||
-    process.env.BREVO_SMTP_PASS;
+    process.env.SMTP_KEY;
   const fromEmail =
+    process.env.MAILJET_FROM_EMAIL ||
     process.env.MAIL_FROM_EMAIL ||
-    process.env.BREVO_FROM_EMAIL ||
     process.env.SMTP_FROM_EMAIL ||
     smtpUser;
-  const fromName = process.env.MAIL_FROM_NAME || process.env.BREVO_FROM_NAME || process.env.SMTP_FROM_NAME || 'Hizmet Pazari';
+  const fromName =
+    process.env.MAILJET_FROM_NAME ||
+    process.env.MAIL_FROM_NAME ||
+    process.env.SMTP_FROM_NAME ||
+    'Hizmet Pazari';
 
   return {
     smtpHost,
@@ -86,12 +91,12 @@ const logMailConfig = (prefix: string, config: ReturnType<typeof getMailConfig>)
 
 const createMailTransporter = (config: ReturnType<typeof getMailConfig>) => {
   if (!config.smtpUser || !config.smtpPass || !config.fromEmail) {
-    console.error('[mail] Brevo SMTP config eksik', {
+    console.error('[mail] Mailjet SMTP config eksik', {
       hasSmtpUser: Boolean(config.smtpUser),
       hasSmtpPassword: Boolean(config.smtpPass),
       hasFromEmail: Boolean(config.fromEmail),
     });
-    throw new Error('SMTP ayarlari eksik. SMTP_USER, SMTP_PASS veya SMTP_KEY ve MAIL_FROM_EMAIL tanimlanmalidir.');
+    throw new Error('SMTP ayarlari eksik. SMTP_USER, SMTP_PASS ve MAIL_FROM_EMAIL tanimlanmalidir.');
   }
 
   return nodemailer.createTransport({
@@ -131,15 +136,15 @@ export const sendEmail = async (options: EmailOptions) => {
   const htmlContent = normalizeHtmlMessage(options.message);
 
   try {
-    logMailConfig('[mail] Brevo SMTP config kontrol ediliyor', config);
+    logMailConfig('[mail] Mailjet SMTP config kontrol ediliyor', config);
     const transporter = createMailTransporter(config);
 
-    console.log('[mail] Brevo SMTP transporter verify basladi', {
+    console.log('[mail] Mailjet SMTP transporter verify basladi', {
       host: config.smtpHost,
       port: config.smtpPort,
     });
     await transporter.verify();
-    console.log('[mail] Brevo SMTP transporter verify basarili', {
+    console.log('[mail] Mailjet SMTP transporter verify basarili', {
       host: config.smtpHost,
       port: config.smtpPort,
     });
@@ -158,7 +163,7 @@ export const sendEmail = async (options: EmailOptions) => {
       html: htmlContent,
     });
 
-    console.log('[mail] E-posta Brevo tarafindan kabul edildi', {
+    console.log('[mail] E-posta Mailjet tarafindan kabul edildi', {
       to: redactEmail(options.email),
       messageId: info.messageId,
       response: info.response,
