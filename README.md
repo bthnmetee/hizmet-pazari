@@ -57,7 +57,9 @@ npm install
 | `JWT_SECRET` | Güçlü, rastgele bir anahtar (min 32 karakter) |
 | `CORS_ORIGIN` | Frontend URL'i (prod: `https://hizmet-pazari.net`) |
 | `FRONTEND_URL` | Frontend URL'i (şifre sıfırlama linkleri için) |
-| `CLOUDINARY_*` | Cloudinary resim yükleme bilgileri |
+| `CLOUDINARY_CLOUD_NAME` | Cloudinary cloud adı |
+| `CLOUDINARY_API_KEY` | Cloudinary API key |
+| `CLOUDINARY_API_SECRET` | Cloudinary API secret |
 | `SMTP_*` | Mailjet SMTP e-posta gönderim bilgileri |
 | `ANTHROPIC_API_KEY` | AI özellikleri için (opsiyonel) |
 | `ADMIN_EMAIL` | Admin yetkisi verilecek e-posta |

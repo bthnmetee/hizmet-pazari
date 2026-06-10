@@ -1,7 +1,7 @@
 import express, { Request, Response, NextFunction } from 'express';
 import { verifyToken } from '../middlewares/authMiddleware';
 import { uploadProfileImage, changePassword } from '../controllers/profileController';
-import { uploadCloud } from '../utils/cloudinaryConfig';
+import { getUploadErrorResponse, uploadCloud } from '../utils/cloudinaryConfig';
 
 const router = express.Router();
 
@@ -9,8 +9,9 @@ const router = express.Router();
 router.post('/upload-image', verifyToken, (req: Request, res: Response, next: NextFunction) => {
   uploadCloud.single('image')(req, res, (err: any) => {
     if (err) {
+      const uploadError = getUploadErrorResponse(err);
       console.error('Multer/Cloudinary Hatası:', err);
-      return res.status(500).json({ message: 'Dosya yükleme hatası: ' + err.message });
+      return res.status(uploadError.statusCode).json({ message: uploadError.message });
     }
     uploadProfileImage(req, res);
   });

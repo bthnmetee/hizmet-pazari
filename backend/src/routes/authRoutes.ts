@@ -1,6 +1,6 @@
 import express, { Request, Response, NextFunction } from 'express';
 import { login, registerCustomer, registerProvider, forgotPassword, resetPassword } from '../controllers/authController';
-import { uploadCloud } from '../utils/cloudinaryConfig'; 
+import { getUploadErrorResponse, uploadCloud } from '../utils/cloudinaryConfig';
 
 const router = express.Router();
 
@@ -11,8 +11,9 @@ router.post('/register/customer', registerCustomer);
 router.post('/register/provider', (req: Request, res: Response, next: NextFunction) => {
   uploadCloud.single('taxCertificate')(req, res, (err: any) => {
     if (err) {
-      console.error("Multer/Cloudinary Hatası:", err);
-      return res.status(500).json({ message: "Dosya yükleme hatası: " + err.message });
+      const uploadError = getUploadErrorResponse(err);
+      console.error('Multer/Cloudinary Hatası:', err);
+      return res.status(uploadError.statusCode).json({ message: uploadError.message });
     }
     registerProvider(req, res);
   });

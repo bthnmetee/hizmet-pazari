@@ -26,6 +26,24 @@ const getPrimaryServiceCategory = (service?: string) => {
   return service.includes('nakliyat') ? 'nakliyat' : service;
 };
 
+const MAX_TAX_CERTIFICATE_SIZE = 5 * 1024 * 1024;
+const TAX_CERTIFICATE_TYPES = new Set(['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'application/pdf']);
+const TAX_CERTIFICATE_EXTENSIONS = new Set(['jpg', 'jpeg', 'png', 'webp', 'pdf']);
+
+const validateTaxCertificate = (file: File) => {
+  const extension = file.name.split('.').pop()?.toLowerCase() || '';
+
+  if (file.size > MAX_TAX_CERTIFICATE_SIZE) {
+    return 'Vergi levhası dosyası 5MB sınırını aşamaz.';
+  }
+
+  if (!TAX_CERTIFICATE_TYPES.has(file.type) && !TAX_CERTIFICATE_EXTENSIONS.has(extension)) {
+    return 'Vergi levhası JPG, PNG, WEBP veya PDF formatında olmalıdır.';
+  }
+
+  return '';
+};
+
 export default function ProviderRegister() {
   const [step, setStep] = useState(1);
   const [name, setName] = useState('');
@@ -104,6 +122,8 @@ export default function ProviderRegister() {
     if (!emailVerified) { setError('Lütfen e-posta adresinizi doğrulayın.'); return; }
     if (!taxCertificate) { setError('Lütfen vergi levhanızı yükleyin.'); return; }
     if (selectedServices.length === 0) { setError('En az bir hizmet alanı seçin.'); return; }
+    const fileError = validateTaxCertificate(taxCertificate);
+    if (fileError) { setError(fileError); return; }
 
     const formData = new FormData();
     formData.append('name', name);
@@ -117,9 +137,7 @@ export default function ProviderRegister() {
 
     setLoading(true);
     try {
-      await axiosInstance.post('/auth/register/provider', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-      });
+      await axiosInstance.post('/auth/register/provider', formData);
       setSuccess(true);
       setTimeout(() => navigate('/login'), 3000);
     } catch (err: any) {
@@ -187,7 +205,27 @@ export default function ProviderRegister() {
               </div>
               <div className="bg-navy-700/30 p-5 rounded-2xl border border-navy-600/30">
                 <label className="block text-xs font-black text-gold-400 uppercase tracking-widest mb-2">Vergi Levhası (Zorunlu)</label>
-                <input type="file" required accept="image/*,.pdf" onChange={e => setTaxCertificate(e.target.files?.[0] || null)} className="w-full text-sm font-medium text-navy-300 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-black file:bg-gold-500 file:text-navy-900 hover:file:bg-gold-400 cursor-pointer" />
+                <input
+                  type="file"
+                  required
+                  accept=".jpg,.jpeg,.png,.webp,.pdf"
+                  onChange={e => {
+                    const file = e.target.files?.[0] || null;
+                    if (file) {
+                      const fileError = validateTaxCertificate(file);
+                      if (fileError) {
+                        setError(fileError);
+                        e.target.value = '';
+                        setTaxCertificate(null);
+                        return;
+                      }
+                    }
+
+                    setError('');
+                    setTaxCertificate(file);
+                  }}
+                  className="w-full text-sm font-medium text-navy-300 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-black file:bg-gold-500 file:text-navy-900 hover:file:bg-gold-400 cursor-pointer"
+                />
               </div>
               <button type="button" onClick={() => {
                 if (!name || !email || !password || !phoneNumber || !taxCertificate) { setError('Lütfen tüm alanları doldurun.'); return; }

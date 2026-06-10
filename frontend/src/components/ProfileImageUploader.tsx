@@ -58,9 +58,7 @@ export default function ProfileImageUploader({ size = 'md', className = '', edit
       formData.append('userId', user?.id || '');
       formData.append('role', user?.role || '');
 
-      const res = await axiosInstance.post('/profile/upload-image', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      });
+      const res = await axiosInstance.post('/profile/upload-image', formData);
 
       if (res.data.profileImage) {
         updateUser({ profileImage: res.data.profileImage });

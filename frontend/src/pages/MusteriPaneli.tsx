@@ -226,9 +226,7 @@ export default function MusteriPaneli() {
       if (text) formPayload.append('text', text);
       if (file) formPayload.append('image', file);
 
-      await axiosInstance.post(`/proposals/${proposalId}/reply`, formPayload, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-      });
+      await axiosInstance.post(`/proposals/${proposalId}/reply`, formPayload);
 
       setReplyTexts(prev => ({ ...prev, [proposalId]: '' }));
       setSelectedFiles(prev => ({ ...prev, [proposalId]: null }));

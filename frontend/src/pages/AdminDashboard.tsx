@@ -6,6 +6,12 @@ import axiosInstance from '../utils/axiosInstance';
 
 type MenuType = 'overview' | 'pending' | 'customers' | 'providers' | 'transactions' | 'requests';
 
+const isPdfUrl = (url?: string) => {
+  if (!url) return false;
+  const cleanUrl = url.split('?')[0].toLowerCase();
+  return cleanUrl.endsWith('.pdf') || cleanUrl.includes('/raw/upload/');
+};
+
 export default function AdminDashboard() {
   const { logout } = useAuth();
   const navigate = useNavigate();
@@ -264,11 +270,20 @@ export default function AdminDashboard() {
                   <div key={provider._id} className="group overflow-hidden rounded-3xl border border-navy-100 bg-white shadow-sm">
                     {provider.taxCertificateUrl ? (
                       <div className="relative h-48 overflow-hidden bg-navy-50">
-                        <img
-                          src={provider.taxCertificateUrl}
-                          alt="Vergi Levhası"
-                          className="h-full w-full object-cover transition-transform group-hover:scale-105"
-                        />
+                        {isPdfUrl(provider.taxCertificateUrl) ? (
+                          <div className="flex h-full w-full flex-col items-center justify-center gap-3 px-6 text-center">
+                            <div className="rounded-xl bg-white px-4 py-3 text-sm font-black text-navy-800 shadow-sm">
+                              PDF Vergi Levhası
+                            </div>
+                            <p className="text-xs font-semibold text-navy-400">Dosyayı yeni sekmede inceleyebilirsiniz.</p>
+                          </div>
+                        ) : (
+                          <img
+                            src={provider.taxCertificateUrl}
+                            alt="Vergi Levhası"
+                            className="h-full w-full object-cover transition-transform group-hover:scale-105"
+                          />
+                        )}
                         <div className="absolute inset-0 flex items-center justify-center bg-navy-900/60 opacity-0 backdrop-blur-sm transition-opacity group-hover:opacity-100">
                           <a
                             href={provider.taxCertificateUrl}

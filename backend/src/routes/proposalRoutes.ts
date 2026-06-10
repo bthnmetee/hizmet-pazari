@@ -7,7 +7,7 @@ import {
   getProviderProposals,
   updateProposalStatus
 } from '../controllers/proposalController';
-import { uploadCloud } from '../utils/cloudinaryConfig';
+import { getUploadErrorResponse, uploadCloud } from '../utils/cloudinaryConfig';
 
 const router = express.Router();
 
@@ -18,7 +18,10 @@ router.post('/create', verifyToken, createProposal);
 // ✅ Resim destekli mesaj
 router.post('/:id/reply', verifyToken, (req: Request, res: Response, next: NextFunction) => {
   uploadCloud.single('image')(req, res, (err: any) => {
-    if (err) return res.status(500).json({ message: 'Dosya yükleme hatası: ' + err.message });
+    if (err) {
+      const uploadError = getUploadErrorResponse(err);
+      return res.status(uploadError.statusCode).json({ message: uploadError.message });
+    }
     replyToProposal(req, res);
   });
 });
