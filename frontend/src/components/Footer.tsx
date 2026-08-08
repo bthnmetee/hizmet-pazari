@@ -4,7 +4,7 @@ export default function Footer() {
   return (
     <footer className="bg-navy-900 text-navy-300 py-16 border-t border-navy-700/50 font-sans mt-auto">
       <div className="max-w-[1920px] mx-auto px-6 lg:px-10 grid grid-cols-1 md:grid-cols-4 gap-12">
-        
+
         {/* ŞİRKET BİLGİSİ */}
         <div>
           <Link to="/" className="flex items-center gap-2 mb-6">
@@ -56,7 +56,7 @@ export default function Footer() {
         <h4 className="text-white font-bold uppercase tracking-widest mb-4 text-sm">İş Ortaklarımız</h4>
         <div className="flex flex-wrap gap-4">
           <a
-            href="https://www.globalevtasima.com.tr"
+            href="https://www.globalevtasima.com.tr/istanbul-izmir-parca-esya-tasima"
             target="_blank"
             rel="noopener"
             className="inline-flex items-center gap-2 px-4 py-2 bg-navy-800 border border-navy-600/50 rounded-xl hover:border-gold-500/50 hover:bg-navy-700 transition-all duration-300 group"
