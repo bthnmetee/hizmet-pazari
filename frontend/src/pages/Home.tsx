@@ -519,7 +519,7 @@ const Home: FC = () => {
           <h4 className="text-white font-bold mb-4 uppercase tracking-wider text-sm">İş Ortaklarımız</h4>
           <div className="flex flex-wrap gap-3">
             <a
-              href="https://www.globalevtasima.com.tr"
+              href="https://www.globalevtasima.com.tr/istanbul-izmir-parca-esya-tasima"
               target="_blank"
               rel="noopener"
               className="inline-flex items-center gap-2 px-4 py-2.5 bg-navy-800 border border-navy-600/50 rounded-xl hover:border-gold-500/40 hover:bg-navy-700/80 transition-all duration-300 group"
@@ -536,7 +536,7 @@ const Home: FC = () => {
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center text-sm mt-12">
           <p>&copy; 2026 Hizmet Pazarı. Tüm hakları saklıdır.</p>
           <div className="flex items-center gap-4 mt-4 md:mt-0">
-            <a href="https://www.globalevtasima.com.tr" target="_blank" rel="noopener" className="hover:text-gold-400 transition-colors">Global Nakliyat</a>
+            <a href="https://www.globalevtasima.com.tr/istanbul-izmir-parca-esya-tasima" target="_blank" rel="noopener" className="hover:text-gold-400 transition-colors">Global Nakliyat</a>
             <span className="text-navy-600">|</span>
             <p>Türkiye'de ❤️ ile geliştirildi</p>
           </div>

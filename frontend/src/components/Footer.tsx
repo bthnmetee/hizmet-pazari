@@ -74,7 +74,7 @@ export default function Footer() {
       <div className="max-w-[1920px] mx-auto px-6 lg:px-10 mt-8 pt-8 border-t border-navy-700/50 text-sm font-medium flex flex-col md:flex-row justify-between items-center">
         <p>© 2026 Hizmet Pazarı. Tüm hakları saklıdır.</p>
         <div className="flex items-center gap-6">
-          <a href="https://www.globalevtasima.com.tr" target="_blank" rel="noopener" className="hover:text-gold-400 transition-colors">Global Nakliyat</a>
+          <a href="https://www.globalevtasima.com.tr/istanbul-izmir-parca-esya-tasima" target="_blank" rel="noopener" className="hover:text-gold-400 transition-colors">Global Nakliyat</a>
           <div className="flex gap-4">
             <span className="w-10 h-10 bg-navy-700 rounded-lg flex items-center justify-center hover:bg-gold-500 text-white transition-colors cursor-pointer font-bold">in</span>
             <span className="w-10 h-10 bg-navy-700 rounded-lg flex items-center justify-center hover:bg-gold-500 text-white transition-colors cursor-pointer font-bold">tw</span>
