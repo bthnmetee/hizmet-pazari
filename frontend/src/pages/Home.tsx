@@ -7,7 +7,7 @@ import AiChatbot from '../components/AiChatbot';
 const KATEGORILER = [
   { id: 'temizlik', image: 'https://images.unsplash.com/photo-1581578731548-c64695cc6952?q=80&w=1470&auto=format&fit=crop', title: 'Ev Temizliği', desc: 'Ev, ofis ve inşaat sonrası detaylı temizlik', proCount: 9788, rating: 4.6, reviewCount: 429069 },
   { id: 'tadilat', image: 'https://images.unsplash.com/photo-1505798577917-a65157d3320a?q=80&w=1470&auto=format&fit=crop', title: 'Tadilat & Boya', desc: 'İç-dış boya, alçı, fayans ve dekorasyon işleri', proCount: 11039, rating: 4.8, reviewCount: 118464 },
-  { id: 'nakliyat', image: 'https://images.unsplash.com/photo-1600518464441-9154a4dea21b?q=80&w=1470&auto=format&fit=crop', title: 'Nakliyat', desc: 'Şehiriçi, şehirlerarası güvenilir eşya taşıma', proCount: 5886, rating: 4.9, reviewCount: 60752 },
+  { id: 'nakliyat', image: 'https://images.unsplash.com/photo-1600518464441-9154a4dea21b?q=80&w=1470&auto=format&fit=crop', title: 'Nakliyat', desc: 'Şehiriçi, şehirlerarası sigortalı ve güvenilir evden eve nakliyat', proCount: 5886, rating: 4.9, reviewCount: 60752 },
   { id: 'yazilim', image: 'https://images.unsplash.com/photo-1498050108023-c5249f4df085?q=80&w=1472&auto=format&fit=crop', title: 'Yazılım & Tasarım', desc: 'Kurumsal web, mobil uygulama ve UI/UX tasarımı', proCount: 3205, rating: 4.9, reviewCount: 45200 },
   { id: 'ozelders', image: 'https://images.unsplash.com/photo-1503676260728-1c00da094a0b?q=80&w=1422&auto=format&fit=crop', title: 'Özel Ders', desc: 'Matematik, İngilizce, yazılım ve müzik dersleri', proCount: 8402, rating: 4.7, reviewCount: 89300 },
   { id: 'guzellik', image: 'https://images.unsplash.com/photo-1560066984-138dadb4c035?q=80&w=1374&auto=format&fit=crop', title: 'Güzellik & Bakım', desc: 'Profesyonel kuaför, cilt bakımı ve manikür', proCount: 6540, rating: 4.8, reviewCount: 112000 },
@@ -514,9 +514,32 @@ const Home: FC = () => {
           </div>
         </div>
 
-        <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center text-sm">
+        {/* İş Ortaklarımız */}
+        <div className="max-w-7xl mx-auto mt-8 pt-8 border-t border-navy-700/50">
+          <h4 className="text-white font-bold mb-4 uppercase tracking-wider text-sm">İş Ortaklarımız</h4>
+          <div className="flex flex-wrap gap-3">
+            <a
+              href="https://www.globalevtasima.com.tr"
+              target="_blank"
+              rel="noopener"
+              className="inline-flex items-center gap-2 px-4 py-2.5 bg-navy-800 border border-navy-600/50 rounded-xl hover:border-gold-500/40 hover:bg-navy-700/80 transition-all duration-300 group"
+            >
+              <span className="w-7 h-7 bg-gold-500/15 rounded-lg flex items-center justify-center text-gold-400 text-sm">🚚</span>
+              <div>
+                <span className="text-white text-sm font-bold block group-hover:text-gold-400 transition-colors">Global Evden Eve Nakliyat</span>
+                <span className="text-navy-400 text-xs">İstanbul, İzmir, Bodrum Nakliyat</span>
+              </div>
+            </a>
+          </div>
+        </div>
+
+        <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center text-sm mt-12">
           <p>&copy; 2026 Hizmet Pazarı. Tüm hakları saklıdır.</p>
-          <p className="mt-4 md:mt-0">Türkiye'de ❤️ ile geliştirildi</p>
+          <div className="flex items-center gap-4 mt-4 md:mt-0">
+            <a href="https://www.globalevtasima.com.tr" target="_blank" rel="noopener" className="hover:text-gold-400 transition-colors">Global Nakliyat</a>
+            <span className="text-navy-600">|</span>
+            <p>Türkiye'de ❤️ ile geliştirildi</p>
+          </div>
         </div>
       </footer>
 

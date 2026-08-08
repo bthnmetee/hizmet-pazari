@@ -51,12 +51,34 @@ export default function Footer() {
 
       </div>
 
+      {/* İŞ ORTAKLARI */}
+      <div className="max-w-[1920px] mx-auto px-6 lg:px-10 mt-12 pt-8 border-t border-navy-700/50">
+        <h4 className="text-white font-bold uppercase tracking-widest mb-4 text-sm">İş Ortaklarımız</h4>
+        <div className="flex flex-wrap gap-4">
+          <a
+            href="https://www.globalevtasima.com.tr"
+            target="_blank"
+            rel="noopener"
+            className="inline-flex items-center gap-2 px-4 py-2 bg-navy-800 border border-navy-600/50 rounded-xl hover:border-gold-500/50 hover:bg-navy-700 transition-all duration-300 group"
+          >
+            <span className="w-8 h-8 bg-gold-500/15 rounded-lg flex items-center justify-center text-gold-400 text-sm group-hover:bg-gold-500/25 transition-colors">🚚</span>
+            <div>
+              <span className="text-white text-sm font-bold block group-hover:text-gold-400 transition-colors">Global Evden Eve Nakliyat</span>
+              <span className="text-navy-400 text-xs font-medium">Sigortalı &amp; Profesyonel Taşımacılık</span>
+            </div>
+          </a>
+        </div>
+      </div>
+
       {/* TELİF VE SOSYAL MEDYA */}
-      <div className="max-w-[1920px] mx-auto px-6 lg:px-10 mt-16 pt-8 border-t border-navy-700/50 text-sm font-medium flex flex-col md:flex-row justify-between items-center">
+      <div className="max-w-[1920px] mx-auto px-6 lg:px-10 mt-8 pt-8 border-t border-navy-700/50 text-sm font-medium flex flex-col md:flex-row justify-between items-center">
         <p>© 2026 Hizmet Pazarı. Tüm hakları saklıdır.</p>
-        <div className="flex gap-4 mt-4 md:mt-0">
-          <span className="w-10 h-10 bg-navy-700 rounded-lg flex items-center justify-center hover:bg-gold-500 text-white transition-colors cursor-pointer font-bold">in</span>
-          <span className="w-10 h-10 bg-navy-700 rounded-lg flex items-center justify-center hover:bg-gold-500 text-white transition-colors cursor-pointer font-bold">tw</span>
+        <div className="flex items-center gap-6">
+          <a href="https://www.globalevtasima.com.tr" target="_blank" rel="noopener" className="hover:text-gold-400 transition-colors">Global Nakliyat</a>
+          <div className="flex gap-4">
+            <span className="w-10 h-10 bg-navy-700 rounded-lg flex items-center justify-center hover:bg-gold-500 text-white transition-colors cursor-pointer font-bold">in</span>
+            <span className="w-10 h-10 bg-navy-700 rounded-lg flex items-center justify-center hover:bg-gold-500 text-white transition-colors cursor-pointer font-bold">tw</span>
+          </div>
         </div>
       </div>
     </footer>
